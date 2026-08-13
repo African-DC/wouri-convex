@@ -175,6 +175,29 @@ pnpm convex:test:knowledge           # convex/knowledge + convex/rag + convex/we
 audience bornée à l'org, source d'une autre org non visible mais globale
 visible) et la logique de `authz/policy`.
 
+### Scénario de démonstration reproductible (QA-07)
+
+`internal.testing.demo.runScenario` rejoue le parcours complet sur staging et
+renvoie, porte par porte, la preuve de ce qui est démontré. Une seule commande,
+aucune manipulation manuelle. Prérequis : le seed doit avoir été exécuté.
+
+```powershell
+npx convex run --prod testing/demo:runScenario '{\"dryRun\":true}'   # vérifie les prérequis
+npx convex run --prod testing/demo:runScenario '{}'                  # exécute et prouve
+```
+
+Le scénario crée une alerte météo sourcée SODEXAM, cible la zone `abidjan-nord`,
+diffuse, fait répondre l'agriculteur « Et pour mon cacao ? », puis vérifie que la
+conversation retrouve l'alerte d'origine sans répétition. Il contrôle aussi
+qu'une autre organisation ne peut pas lire cette conversation.
+
+Sortie attendue : `portesDemontrees: 5`, `portesEnEchec: []`, couvrant G03
+(cloisonnement et ciblage), G05 (alerte vers conversation contextualisée), G06
+(provenance de la source) et G14 (cycle de diffusion tracé).
+
+Comme le seed, il refuse de s'exécuter si `WOURI_ENV === "production"` : il écrit
+des données de démonstration.
+
 ## 5. Seed staging
 
 Le seed est une internal mutation `internal.testing.seed.seedStaging`. Il
