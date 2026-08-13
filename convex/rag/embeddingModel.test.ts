@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createLocalEmbeddingModel } from "./embeddingModel";
 
+
 const dot = (a: number[], b: number[]) =>
   a.reduce((sum, value, index) => sum + value * b[index], 0);
 

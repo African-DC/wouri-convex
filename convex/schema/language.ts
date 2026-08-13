@@ -4,6 +4,35 @@ import { v } from "convex/values";
 const lifecycle = v.union(v.literal("draft"), v.literal("approved"), v.literal("retired"));
 
 export const languageTables = {
+  // LNG-04 / AI-03 — banque de phrases validées du Fast Path. Convex détient la
+  // GOUVERNANCE (qui a validé, quand, quelle version) ; l'index de service qui
+  // répond en millisecondes est une projection reconstructible côté calcul.
+  // Voir ADR-0025 pour la frontière entre les deux.
+  approvedPhrases: defineTable({
+    organizationId: v.optional(v.string()),
+    language: v.string(),
+    // Intention IVR à laquelle la phrase répond (salutation, météo, prix...).
+    intent: v.string(),
+    // Culture concernée quand la réponse en dépend ; absente = toutes cultures.
+    culture: v.optional(v.string()),
+    normalizedKey: v.string(),
+    status: lifecycle,
+  })
+    .index("by_organizationId_and_language_and_normalizedKey", [
+      "organizationId",
+      "language",
+      "normalizedKey",
+    ])
+    // Index de projection : lit les phrases approuvées d'une langue par intention.
+    .index("by_language_and_intent_and_status", ["language", "intent", "status"]),
+  approvedPhraseVersions: defineTable({
+    phraseId: v.id("approvedPhrases"),
+    version: v.number(),
+    text: v.string(),
+    reviewerMemberId: v.string(),
+    sourceVersionId: v.optional(v.id("knowledgeSourceVersions")),
+    approvedAt: v.optional(v.number()),
+  }).index("by_phraseId_and_version", ["phraseId", "version"]),
   glossaryTerms: defineTable({
     organizationId: v.optional(v.string()),
     language: v.string(),

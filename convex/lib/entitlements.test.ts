@@ -1,11 +1,12 @@
+/// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
 import schema from "../schema";
 import { enforceEntitlementLimit, requireEntitlement } from "./entitlements";
 
-const modules = {
-  "../_generated/api.js": () => import("../_generated/api.js"),
-};
+// convex-test exige le map COMPLET des modules pour resoudre les fonctions
+// enregistrees : un map partiel les rend silencieusement inatteignables.
+const modules = import.meta.glob("./../**/*.ts");
 
 // DAT-03 / §13 — a plan limit is actually enforceable in code: the 501st farmer
 // is refused, and a missing entitlement fails closed.

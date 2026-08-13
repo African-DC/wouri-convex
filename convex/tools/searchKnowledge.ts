@@ -55,17 +55,14 @@ export const searchKnowledge = action({
     if (args.language) filters.push({ name: "language", value: args.language });
 
     const searchNamespace = async (namespace: string) => {
-      try {
-        return await rag.search(ctx, { namespace, query: args.query, filters, limit });
-      } catch (error) {
-        // A namespace with no ingested content yet is a normal empty result. Any
-        // other failure (embedding provider, dimension mismatch, index error) is
-        // a real system fault and must NOT be masked as "no evidence" — rethrow
-        // it so the trace records a genuine error instead of a false abstention.
-        const message = error instanceof Error ? error.message.toLowerCase() : "";
-        if (message.includes("namespace")) return { results: [], entries: [] };
-        throw error;
-      }
+      // A namespace with nothing ingested yet is a legitimate empty result, and
+      // we detect it by ASKING rather than by matching an error message: any
+      // other failure (embedding provider down, dimension mismatch, index error)
+      // must surface as a real error instead of a false "no evidence", which
+      // would silently look like a correct abstention.
+      const existing = await rag.getNamespace(ctx, { namespace });
+      if (!existing) return { results: [], entries: [] };
+      return rag.search(ctx, { namespace, query: args.query, filters, limit });
     };
 
     const [globalHits, orgHits] = await Promise.all([

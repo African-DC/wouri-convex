@@ -1,11 +1,12 @@
+/// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
 import schema from "../schema";
 import { activeAssignmentForMember } from "./authorize";
 
-const modules = {
-  "../_generated/api.js": () => import("../_generated/api.js"),
-};
+// convex-test exige le map COMPLET des modules pour resoudre les fonctions
+// enregistrees : un map partiel les rend silencieusement inatteignables.
+const modules = import.meta.glob("./../**/*.ts");
 
 const seedPolicy = (t: ReturnType<typeof convexTest>, key: string) =>
   t.run((ctx) => ctx.db.insert("organizationRolePolicies", {

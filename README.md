@@ -53,8 +53,10 @@ tests reproductibles.
 **Cloisonnement strict entre organisations.** L'organisation autorisée est
 toujours dérivée de la session, jamais d'un paramètre fourni par l'appelant.
 Chaque lecture d'une ressource vérifie son appartenance. Une suite de tests
-prouve l'absence de fuite entre organisations, y compris avec un identifiant
-deviné.
+couvre le cloisonnement de la couche d'accès aux données et la frontière entre
+organisations, y compris avec un identifiant deviné. Le chemin complet
+session vers autorisation n'est pas encore exercé de bout en bout dans les
+tests : c'est la principale lacune de couverture connue.
 
 **Refus par défaut.** Une autorisation absente, expirée ou ambiguë refuse
 l'accès. Une organisation nouvellement créée ne reçoit aucun droit implicite :
@@ -77,6 +79,7 @@ le raisonnement interne d'un modèle.
 | [Runbook](docs/convex-runbook.md) | Environnements, déploiement, tests, seed |
 | [Matrice des permissions](docs/convex-permissions-matrix.md) | Rôles et capacités |
 | [Fondation](docs/convex-foundation.md) | Décisions de la transition |
+| [Décisions d'architecture](docs/adr/) | ADR, dont la frontière données/calcul (ADR-0025) |
 
 ## Environnements
 

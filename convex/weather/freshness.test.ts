@@ -1,11 +1,12 @@
+/// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
 import schema from "../schema";
 import { insertObservation, latestValidObservation } from "./model";
 
-const modules = {
-  "../_generated/api.js": () => import("../_generated/api.js"),
-};
+// convex-test exige le map COMPLET des modules pour resoudre les fonctions
+// enregistrees : un map partiel les rend silencieusement inatteignables.
+const modules = import.meta.glob("./../**/*.ts");
 
 // §23 / G07 — getWeather abstains when no fresh data covers the zone. This tests
 // its basis: latestValidObservation returns null once the validity window closes.

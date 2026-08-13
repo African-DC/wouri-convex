@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
 import schema from "../schema";
@@ -11,9 +12,9 @@ import {
 } from "../alerts/model";
 import { resolveAlertContext } from "../conversations/model";
 
-const modules = {
-  "../_generated/api.js": () => import("../_generated/api.js"),
-};
+// convex-test exige le map COMPLET des modules pour resoudre les fonctions
+// enregistrees : un map partiel les rend silencieusement inatteignables.
+const modules = import.meta.glob("./../**/*.ts");
 
 // G05 / QA-03 — an alert reaches a targeted farmer, the delivery advances to
 // "replied", and the conversation recovers the originating alert (its message,
@@ -100,5 +101,39 @@ describe("alert to conversation flow", () => {
       return delivery?.state;
     });
     expect(state).toBe("read");
+  });
+
+  it("counts every failure and lets a retry recover", async () => {
+    const t = convexTest(schema, modules);
+    const { alertId, farmer } = await t.run(async (ctx) => {
+      const farmer = await createFarmerForOrg(ctx, "org-a", "a1", 1);
+      const alertId = await createAlertForOrg(ctx, "org-a", "m", { message: "x" }, 1);
+      await createDeliveriesForOrg(ctx, "org-a", alertId, [farmer], 1);
+      return { alertId, farmer };
+    });
+    const readDelivery = () =>
+      t.run(async (ctx) =>
+        ctx.db
+          .query("alertDeliveries")
+          .withIndex("by_alertId_and_farmerId", (q) =>
+            q.eq("alertId", alertId).eq("farmerId", farmer),
+          )
+          .first(),
+      );
+
+    // Two failed callbacks must both be counted: the attempt counter is what
+    // drives retry and alerting, so swallowing the second would freeze it at 1.
+    for (const _ of [0, 1]) {
+      await t.run((ctx) =>
+        setDeliveryStateByAlertAndFarmer(ctx, alertId, farmer, "failed"),
+      );
+    }
+    expect((await readDelivery())?.attemptCount).toBe(2);
+
+    // A retry that finally succeeds must be able to leave the failed state.
+    await t.run((ctx) =>
+      setDeliveryStateByAlertAndFarmer(ctx, alertId, farmer, "sent"),
+    );
+    expect((await readDelivery())?.state).toBe("sent");
   });
 });

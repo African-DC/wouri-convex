@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
 import schema from "../schema";
@@ -14,9 +15,9 @@ import {
   sourceVersionVisibleToOrg,
 } from "../knowledge/model";
 
-const modules = {
-  "../_generated/api.js": () => import("../_generated/api.js"),
-};
+// convex-test exige le map COMPLET des modules pour resoudre les fonctions
+// enregistrees : un map partiel les rend silencieusement inatteignables.
+const modules = import.meta.glob("./../**/*.ts");
 
 // DAT-07 / G03 / G06 — cross-organization isolation at the data layer. The
 // authorize() layer derives the org from the session; these tests prove the

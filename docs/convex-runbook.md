@@ -35,15 +35,20 @@ pnpm convex:check
 
 ## 2. Sélection staging vs production
 
-### Environnements provisionnés (team `djedjelipatrick`)
+### Environnements provisionnés
 
-Isolation stricte par PROJET Convex (DAT-01) :
+Isolation stricte par PROJET Convex (DAT-01) : trois projets distincts, un par
+environnement.
 
-| Environnement | Projet Convex (slug) | Déploiement ciblé | URL |
-| --- | --- | --- | --- |
-| Développement local | `wouri` | `dev:avid-badger-569` | (dev, par développeur) |
-| Staging | `wouri-staging-75d3f` | prod du projet staging | `https://spotted-chickadee-971.convex.cloud` |
-| Production | `wouri-prod` | prod du projet production | `https://grand-alligator-409.convex.cloud` |
+| Environnement | Projet Convex | Déploiement ciblé |
+| --- | --- | --- |
+| Développement local | projet `wouri` | déploiement dev, propre à chaque poste |
+| Staging | projet staging dédié | déploiement de production de ce projet |
+| Production | projet production dédié | déploiement de production de ce projet |
+
+Ce dépôt étant public, les identifiants de déploiement, les slugs de projet et
+le nom d'équipe ne sont pas publiés ici. Les valeurs exactes se lisent dans le
+dashboard Convex, ou en local via `npx convex env list`.
 
 Chaque environnement est un **projet Convex distinct** : schéma, données et
 secrets totalement isolés (DAT-01). Le `BETTER_AUTH_SECRET` est différent dans
@@ -59,17 +64,17 @@ correspondants existeront.
 « Seed refuse en production » (vérifié). Ne jamais changer cette valeur pour
 contourner le garde-fou.
 
-Attention au **slug** du projet : celui du staging porte un suffixe
-(`wouri-staging-75d3f`). Utiliser le slug exact, sinon la CLI crée un nouveau
-projet au lieu de lier l'existant.
+Attention au **slug** du projet : celui du staging porte un suffixe genere a la
+creation. Utiliser le slug exact lu dans le dashboard, sinon la CLI cree un
+nouveau projet au lieu de lier l'existant.
 
 ```powershell
 # Sélectionner un environnement (remplacer <slug> par le slug exact)
-npx convex dev --configure existing --team djedjelipatrick --project <slug> --dev-deployment cloud --once
+npx convex dev --configure existing --team <team> --project <slug> --dev-deployment cloud --once
 npx convex deploy --yes     # déploie vers la prod du projet sélectionné
 
 # TOUJOURS revenir sur le dev après une opération staging/production
-npx convex dev --configure existing --team djedjelipatrick --project wouri --dev-deployment cloud --once
+npx convex dev --configure existing --team <team> --project wouri --dev-deployment cloud --once
 ```
 
 Poser un secret : passer la valeur **sans guillemets** (des guillemets autour de

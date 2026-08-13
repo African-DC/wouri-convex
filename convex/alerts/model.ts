@@ -172,17 +172,19 @@ export const createDeliveriesForOrg = async (
   return farmerIds.length;
 };
 
-// Delivery state ranks. WhatsApp callbacks can arrive out of order, so a state
-// only ever advances: a late "delivered" after "read" is ignored, and terminal
-// outcomes (replied/failed) never regress to a progress state.
-const DELIVERY_RANK: Record<Doc<"alertDeliveries">["state"], number> = {
+// Progress axis of a delivery. WhatsApp callbacks can arrive out of order, so
+// progress only ever advances: a late "delivered" after "read" is ignored.
+// "failed" is deliberately NOT on this axis — a failure is an outcome, not a
+// step: a delivery can fail, be retried, and then legitimately reach "sent"
+// again. Keeping it off the axis is what makes retries possible at all.
+const DELIVERY_PROGRESS: Record<Doc<"alertDeliveries">["state"], number> = {
   created: 0,
   scheduled: 1,
   sent: 2,
   delivered: 3,
   read: 4,
   replied: 5,
-  failed: 5,
+  failed: -1,
 };
 
 const applyDeliveryState = async (
@@ -190,11 +192,22 @@ const applyDeliveryState = async (
   delivery: Doc<"alertDeliveries">,
   state: Doc<"alertDeliveries">["state"],
 ) => {
-  if (DELIVERY_RANK[state] <= DELIVERY_RANK[delivery.state]) return delivery._id;
-  await ctx.db.patch(delivery._id, {
-    state,
-    ...(state === "failed" ? { attemptCount: delivery.attemptCount + 1 } : {}),
-  });
+  // Every failure callback counts, even a repeated one: the attempt counter is
+  // what drives retry and alerting.
+  if (state === "failed") {
+    await ctx.db.patch(delivery._id, {
+      state,
+      attemptCount: delivery.attemptCount + 1,
+    });
+    return delivery._id;
+  }
+  // Recovering from a failure is always allowed; otherwise progress must move
+  // forward.
+  const recovering = delivery.state === "failed";
+  if (!recovering && DELIVERY_PROGRESS[state] <= DELIVERY_PROGRESS[delivery.state]) {
+    return delivery._id;
+  }
+  await ctx.db.patch(delivery._id, { state });
   return delivery._id;
 };
 

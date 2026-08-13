@@ -1,10 +1,12 @@
 import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { authorize, CAPABILITIES } from "../authorization";
-import { clampLimit } from "./shared";
+import { assertReadable, clampLimit, scopeOrganization } from "./shared";
 
 // §28 / OBS-01 & OBS-04 — read access to execution traces and error reports.
-// Platform-scoped: requires aiopsRead.
+// Requires aiopsRead AND tenant scoping: holding the capability only grants
+// access to the caller's own organization, unless the caller is the platform
+// operator (an organization of kind "adc"). See ./shared.
 
 const resultStatus = v.union(
   v.literal("running"),
@@ -13,8 +15,8 @@ const resultStatus = v.union(
   v.literal("failed"),
 );
 
-// Recent traces, filterable by result status or by organization. When neither a
-// status nor an org is given, returns the platform-scoped traces (org unset).
+// Recent traces. A cross-organization view is reserved to the platform operator;
+// every other caller is pinned to its own organization whatever it requests.
 export const listTraces = query({
   args: {
     organizationId: v.optional(v.string()),
@@ -22,9 +24,21 @@ export const listTraces = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    await authorize(ctx, { permission: CAPABILITIES.aiopsRead });
+    const auth = await authorize(ctx, { permission: CAPABILITIES.aiopsRead });
     const limit = clampLimit(args.limit);
-    if (args.resultStatus !== undefined) {
+    const scope = await scopeOrganization(ctx, auth, args.organizationId);
+
+    if (scope === undefined) {
+      // Platform operator, no organization requested: status-wide view.
+      if (args.resultStatus === undefined) {
+        return ctx.db
+          .query("executionTraces")
+          .withIndex("by_organizationId_and_startedAt", (q) =>
+            q.eq("organizationId", undefined),
+          )
+          .order("desc")
+          .take(limit);
+      }
       const status = args.resultStatus;
       return ctx.db
         .query("executionTraces")
@@ -34,13 +48,19 @@ export const listTraces = query({
         .order("desc")
         .take(limit);
     }
-    return ctx.db
+
+    // Organization-scoped: read through the org index, then narrow by status so
+    // the status filter can never widen the result beyond the tenant.
+    const traces = await ctx.db
       .query("executionTraces")
       .withIndex("by_organizationId_and_startedAt", (q) =>
-        q.eq("organizationId", args.organizationId),
+        q.eq("organizationId", scope),
       )
       .order("desc")
       .take(limit);
+    return args.resultStatus === undefined
+      ? traces
+      : traces.filter((trace) => trace.resultStatus === args.resultStatus);
   },
 });
 
@@ -48,9 +68,10 @@ export const listTraces = query({
 export const getTrace = query({
   args: { traceId: v.id("executionTraces") },
   handler: async (ctx, args) => {
-    await authorize(ctx, { permission: CAPABILITIES.aiopsRead });
+    const auth = await authorize(ctx, { permission: CAPABILITIES.aiopsRead });
     const trace = await ctx.db.get(args.traceId);
     if (!trace) return null;
+    await assertReadable(ctx, auth, trace.organizationId);
     const steps = await ctx.db
       .query("executionTraceSteps")
       .withIndex("by_traceId_and_ordinal", (q) => q.eq("traceId", args.traceId))
@@ -60,7 +81,7 @@ export const getTrace = query({
   },
 });
 
-// Recent error reports, filterable by taxonomy code or by organization.
+// Recent error reports, same tenant scoping as listTraces.
 export const listErrors = query({
   args: {
     organizationId: v.optional(v.string()),
@@ -68,9 +89,20 @@ export const listErrors = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    await authorize(ctx, { permission: CAPABILITIES.aiopsRead });
+    const auth = await authorize(ctx, { permission: CAPABILITIES.aiopsRead });
     const limit = clampLimit(args.limit);
-    if (args.errorType !== undefined) {
+    const scope = await scopeOrganization(ctx, auth, args.organizationId);
+
+    if (scope === undefined) {
+      if (args.errorType === undefined) {
+        return ctx.db
+          .query("errorReports")
+          .withIndex("by_organizationId_and_createdAt", (q) =>
+            q.eq("organizationId", undefined),
+          )
+          .order("desc")
+          .take(limit);
+      }
       const errorType = args.errorType;
       return ctx.db
         .query("errorReports")
@@ -80,12 +112,16 @@ export const listErrors = query({
         .order("desc")
         .take(limit);
     }
-    return ctx.db
+
+    const errors = await ctx.db
       .query("errorReports")
       .withIndex("by_organizationId_and_createdAt", (q) =>
-        q.eq("organizationId", args.organizationId),
+        q.eq("organizationId", scope),
       )
       .order("desc")
       .take(limit);
+    return args.errorType === undefined
+      ? errors
+      : errors.filter((error) => error.errorType === args.errorType);
   },
 });

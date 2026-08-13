@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { evaluateAuthorization } from "./policy";
 import type { AuthorizationRequirement, AuthorizationSnapshot } from "./types";
 
+
 const now = 1_800_000_000_000;
 const requirement: AuthorizationRequirement = {
   permission: "alerts:send",

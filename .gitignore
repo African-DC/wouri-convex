@@ -32,3 +32,10 @@ Thumbs.db
 *.log
 npm-debug.log*
 pnpm-debug.log*
+
+# Etat local de l'outillage agent Convex (regenere par `npx convex ai-files install`)
+skills-lock.json
+convex/_generated/ai/ai-files.state.json
+
+# Cache local Convex
+.convex/

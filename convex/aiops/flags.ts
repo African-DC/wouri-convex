@@ -3,7 +3,7 @@ import { mutation, query, internalQuery } from "../_generated/server";
 import type { QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { authorize, authorizeMutation, CAPABILITIES } from "../authorization";
-import { auditAiops, clampLimit } from "./shared";
+import { auditAiops, clampLimit, isPlatformOrganization, scopeOrganization } from "./shared";
 
 // AI-06 / §27 — feature flag resolution and controlled mutation.
 
@@ -72,12 +72,16 @@ export const setFlag = mutation({
       permission: CAPABILITIES.featureFlagsManage,
     });
     const now = Date.now();
+    // Only the platform operator may target another organization, or set an
+    // environment-wide flag (organizationId undefined). Any other caller is
+    // pinned to its own organization whatever it requests.
+    const organizationId = await scopeOrganization(ctx, auth, args.organizationId);
     const existing = await ctx.db
       .query("featureFlags")
       .withIndex("by_environment_and_organizationId_and_key", (q) =>
         q
           .eq("environment", args.environment)
-          .eq("organizationId", args.organizationId)
+          .eq("organizationId", organizationId)
           .eq("key", args.key),
       )
       .unique();
@@ -95,7 +99,7 @@ export const setFlag = mutation({
       flagId = await ctx.db.insert("featureFlags", {
         key: args.key,
         environment: args.environment,
-        organizationId: args.organizationId,
+        organizationId,
         ...fields,
       });
     }
@@ -119,12 +123,22 @@ export const listFlags = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    await authorize(ctx, { permission: CAPABILITIES.featureFlagsManage });
-    return ctx.db
+    const auth = await authorize(ctx, {
+      permission: CAPABILITIES.featureFlagsManage,
+    });
+    const flags = await ctx.db
       .query("featureFlags")
       .withIndex("by_environment_and_key", (q) =>
         q.eq("environment", args.environment),
       )
       .take(clampLimit(args.limit));
+    if (await isPlatformOrganization(ctx, auth.organizationId)) return flags;
+    // A tenant sees the environment-wide flags that apply to it, plus its own,
+    // never another organization's overrides.
+    return flags.filter(
+      (flag) =>
+        flag.organizationId === undefined ||
+        flag.organizationId === auth.organizationId,
+    );
   },
 });
