@@ -49,6 +49,10 @@ export const ROLE_PRESETS = {
     CAPABILITIES.analyticsRead,
   ],
   // CNRA — agronomic knowledge provider.
+  // CNRA a une double casquette : il fournit la connaissance agronomique ET il
+  // est une organisation cliente qui beneficie des donnees des partenaires
+  // (meteo SODEXAM selon les droits) et diffuse ses propres campagnes. Il
+  // publie donc ses alertes, il ne fait pas que les rediger.
   cnraOperator: [
     CAPABILITIES.organizationRead,
     CAPABILITIES.knowledgeIngest,
@@ -56,6 +60,7 @@ export const ROLE_PRESETS = {
     CAPABILITIES.sourcesPublish,
     CAPABILITIES.knowledgeRead,
     CAPABILITIES.alertsCreate,
+    CAPABILITIES.alertsPublish,
     CAPABILITIES.alertsRead,
     CAPABILITIES.analyticsRead,
   ],

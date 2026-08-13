@@ -19,6 +19,13 @@ export const conversationTables = {
   })
     .index("by_agentThreadId", ["agentThreadId"])
     .index("by_organizationId_and_farmerId", ["organizationId", "farmerId"])
+    // Inbox de la console : conversations d'une organisation, les plus actives
+    // d'abord, filtrables par statut ouvert/ferme.
+    .index("by_organizationId_and_status_and_lastActivityAt", [
+      "organizationId",
+      "status",
+      "lastActivityAt",
+    ])
     .index("by_organizationId_and_originAlertId", [
       "organizationId",
       "originAlertId",

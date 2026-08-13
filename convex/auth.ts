@@ -20,6 +20,20 @@ const runtimeEnvironment = globalThis as typeof globalThis & {
 const configuredOrigin = () =>
   runtimeEnvironment.process?.env?.SITE_URL ?? localOrigin;
 
+// Flag EXPLICITE de la connexion email/mot de passe.
+//
+// Auparavant l'activation etait deduite de `SITE_URL === localhost`, ce qui
+// produisait un verrouillage silencieux : des qu'un environnement posait
+// SITE_URL, la seule methode de connexion disparaissait et, aucun autre
+// fournisseur n'etant configure, plus personne ne pouvait se connecter.
+// Un environnement decide desormais explicitement, et le defaut reste sur pour
+// un deploiement non configure (ferme hors developpement local).
+const emailPasswordEnabled = () => {
+  const flag = runtimeEnvironment.process?.env?.AUTH_EMAIL_PASSWORD_ENABLED;
+  if (flag !== undefined) return flag === "true" || flag === "1";
+  return configuredOrigin() === localOrigin;
+};
+
 const authFunctions: AuthFunctions = internal.auth;
 
 export const authComponent = createClient<DataModel, typeof authSchema>(
@@ -49,7 +63,7 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
     trustedOrigins: [configuredOrigin()],
     database: authComponent.adapter(ctx),
     emailAndPassword: {
-      enabled: configuredOrigin() === localOrigin,
+      enabled: emailPasswordEnabled(),
       minPasswordLength: 12,
       requireEmailVerification: false,
     },

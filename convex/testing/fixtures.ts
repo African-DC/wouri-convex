@@ -23,9 +23,13 @@ export const ORGANIZATIONS: OrgFixture[] = [
   { organizationId: "demo-ngo", kind: "ngo", legalName: "DEMO NGO Partner" },
 ];
 
-// The organization whose role policies must gain an extra "linguist" policy
-// (provisionOrganization does not create it from the cnra preset).
-export const LINGUIST_ORGANIZATION_ID = "demo-cnra";
+// Le linguiste-validateur est un ROLE transversal de la plateforme, pas une
+// organisation : les locuteurs-validateurs dioula et baoule valident la qualite
+// linguistique pour l'ensemble de WOURI. Ils sont donc rattaches a ADC.
+// Le CNRA, lui, est une organisation cliente et fournisseuse d'agronomie : il ne
+// valide pas les langues. Aucun preset de type d'organisation ne cree la policy
+// "linguist", elle est ajoutee explicitement a ADC.
+export const LINGUIST_ORGANIZATION_ID = "demo-adc";
 
 export type MemberFixture = {
   organizationId: string;
@@ -38,7 +42,7 @@ export const MEMBERS: MemberFixture[] = [
   { organizationId: "demo-adc", memberId: "demo-adc-admin", rolePolicyKey: "adcAdmin" },
   { organizationId: "demo-sodexam", memberId: "demo-sodexam-op", rolePolicyKey: "sodexamOperator" },
   { organizationId: "demo-cnra", memberId: "demo-cnra-op", rolePolicyKey: "cnraOperator" },
-  { organizationId: "demo-cnra", memberId: "demo-linguist", rolePolicyKey: "linguist" },
+  { organizationId: "demo-adc", memberId: "demo-linguist", rolePolicyKey: "linguist" },
   { organizationId: "demo-coop-a", memberId: "demo-coop-a-admin", rolePolicyKey: "clientAdmin" },
   { organizationId: "demo-coop-b", memberId: "demo-coop-b-admin", rolePolicyKey: "clientAdmin" },
   { organizationId: "demo-ngo", memberId: "demo-ngo-admin", rolePolicyKey: "clientAdmin" },
