@@ -201,6 +201,115 @@ export const corpus = internalQuery({
   },
 });
 
+// @reflete organizations/queries:listOrganizations
+export const organizations = internalQuery({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const limit = Math.min(args.limit ?? 50, CAP_LISTE);
+    const rows = await ctx.db.query("organizationProfiles").take(limit);
+    return rows.map((org) => ({
+      id: org.organizationId,
+      nom: org.legalName ?? null,
+      type: org.kind,
+      statut: org.status,
+    }));
+  },
+});
+
+// @reflete farmers/queries:getFarmerProfile
+export const farmer = internalQuery({
+  args: { farmerId: v.id("farmers") },
+  handler: async (ctx, args) => {
+    const found = await ctx.db.get(args.farmerId);
+    if (!found) return null;
+    const profile = await ctx.db
+      .query("farmerProfiles")
+      .withIndex("by_farmerId", (q) => q.eq("farmerId", found._id))
+      .unique();
+    const consent = await ctx.db
+      .query("farmerConsents")
+      .withIndex("by_farmerId_and_purpose_and_recordedAt", (q) =>
+        q.eq("farmerId", found._id).eq("purpose", "whatsapp_alerts"),
+      )
+      .order("desc")
+      .first();
+    // Metadonnees seulement : ni numero, ni contenu de message. L'identifiant
+    // externe est un hachage, il ne revele pas la personne.
+    return {
+      id: found._id,
+      organisation: found.organizationId,
+      statut: found.status,
+      langue: profile?.preferredLanguage ?? null,
+      pays: profile?.countryCode ?? null,
+      consentementAlertes: consent?.state ?? "aucun",
+      consentementDepuis: consent?.recordedAt ?? null,
+    };
+  },
+});
+
+// @reflete alerts/queries:getAlert
+export const alert = internalQuery({
+  args: { alertId: v.id("alerts") },
+  handler: async (ctx, args) => {
+    const found = await ctx.db.get(args.alertId);
+    if (!found) return null;
+    const rules = await ctx.db
+      .query("alertAudienceRules")
+      .withIndex("by_alertId", (q) => q.eq("alertId", found._id))
+      .take(CAP_LISTE);
+    const deliveries = await ctx.db
+      .query("alertDeliveries")
+      .withIndex("by_alertId_and_state", (q) => q.eq("alertId", found._id))
+      .take(10000);
+    const etats: Record<string, number> = {};
+    for (const delivery of deliveries) {
+      etats[delivery.state] = (etats[delivery.state] ?? 0) + 1;
+    }
+    return {
+      id: found._id,
+      organisation: found.organizationId,
+      statut: found.status,
+      message: found.message,
+      sourcee: found.sourceVersionId !== undefined,
+      ciblage: rules.map((rule) => ({ type: rule.kind, valeur: rule.targetKey })),
+      livraisons: { total: deliveries.length, etats },
+    };
+  },
+});
+
+// @reflete aiops/auditread:listAuditLogs
+export const audit = internalQuery({
+  args: {
+    action: v.optional(v.string()),
+    organizationId: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = Math.min(args.limit ?? 20, CAP_LISTE);
+    const rows = args.action
+      ? await ctx.db
+          .query("auditLogs")
+          .withIndex("by_action_and_createdAt", (q) => q.eq("action", args.action!))
+          .order("desc")
+          .take(limit)
+      : await ctx.db
+          .query("auditLogs")
+          .withIndex("by_organizationId_and_createdAt", (q) =>
+            q.eq("organizationId", args.organizationId),
+          )
+          .order("desc")
+          .take(limit);
+    return rows.map((row) => ({
+      id: row._id,
+      action: row.action,
+      ressource: row.resourceType,
+      organisation: row.organizationId ?? null,
+      auteur: row.actorMemberId ?? row.actorSubject,
+      creeA: row.createdAt,
+    }));
+  },
+});
+
 // @reflete conversations/queries:getConversationContext
 export const conversation = internalQuery({
   args: { contextId: v.id("conversationContexts") },

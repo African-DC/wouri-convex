@@ -50,7 +50,7 @@ Colonne Console renseignée depuis le code du dépôt `wouri-console`.
 
 | Fonction | Type | Capacité | Risque | Console | CLI/MCP |
 | --- | --- | --- | --- | --- | --- |
-| `aiops/auditread:listAuditLogs` | query | `audit.read` | READ | oui | — |
+| `aiops/auditread:listAuditLogs` | query | `audit.read` | READ | oui | oui |
 | `aiops/flags:listFlags` | query | `featureflags.manage` | READ | oui | — |
 | `aiops/flags:setFlag` | mutation | `featureflags.manage` | SENSITIVE_WRITE | oui | — |
 | `aiops/health:health` | query | `aiops.read` | READ | — | oui |
@@ -75,7 +75,7 @@ Colonne Console renseignée depuis le code du dépôt `wouri-console`.
 | `alerts/mutations:cancelAlert` | mutation | `alerts.publish` | SENSITIVE_WRITE | oui | — |
 | `alerts/mutations:createAlert` | mutation | `alerts.create` | SAFE_WRITE | oui | — |
 | `alerts/mutations:publishAlert` | mutation | `alerts.publish` | SENSITIVE_WRITE | oui | — |
-| `alerts/queries:getAlert` | query | `alerts.read` | READ | oui | — |
+| `alerts/queries:getAlert` | query | `alerts.read` | READ | oui | oui |
 | `alerts/queries:listAlerts` | query | `alerts.read` | READ | oui | — |
 | `alerts/queries:previewAudience` | query | `alerts.create` | READ | oui | — |
 | `conversations/queries:getConversationContext` | query | `alerts.read` | READ | oui | oui |
@@ -90,7 +90,7 @@ Colonne Console renseignée depuis le code du dépôt `wouri-console`.
 | `farmers/mutations:upsertFarmerProfile` | mutation | `farmers.write` | SAFE_WRITE | — | — |
 | `farmers/mutations:withdrawConsent` | mutation | `consents.write` | SENSITIVE_WRITE | oui | — |
 | `farmers/queries:getFarmer` | query | `farmers.read` | READ | — | — |
-| `farmers/queries:getFarmerProfile` | query | `farmers.read` | READ | oui | — |
+| `farmers/queries:getFarmerProfile` | query | `farmers.read` | READ | oui | oui |
 | `farmers/queries:listFarmerGroups` | query | `farmers.read` | READ | — | — |
 | `farmers/queries:listFarmers` | query | `farmers.read` | READ | oui | — |
 | `knowledge/ingest:ingestDocument` | action | `knowledge.ingest` | SENSITIVE_WRITE | — | — |
@@ -108,7 +108,7 @@ Colonne Console renseignée depuis le code du dépôt `wouri-console`.
 | `language/promote:promoteToGlossary` | mutation | `linguistic.validate` | SENSITIVE_WRITE | oui | — |
 | `organizations/provisioning:activateOrganization` | mutation | `platform.manage` | SENSITIVE_WRITE | — | — |
 | `organizations/queries:getMyOrganization` | query | `organization.read` | READ | — | — |
-| `organizations/queries:listOrganizations` | query | `platform.manage` | READ | oui | — |
+| `organizations/queries:listOrganizations` | query | `platform.manage` | READ | oui | oui |
 | `pipeline/answer:answerFarmerQuestion` | action | `knowledge.read` | SAFE_WRITE | — | — |
 | `session/me:me` | query | `organization.read` | READ | oui | — |
 | `tools/getFarmerProfile:getFarmerProfile` | query | `farmers.read` | READ | — | — |
@@ -158,5 +158,5 @@ soit un trou du Control Plane, soit une surface à retirer.
 La CLI et le serveur MCP partagent une seule surface, en lecture seule, dont
 le préfixe est vérifié en code et non seulement documenté (DEV-04).
 
-Outils exposés : `health`, `traces`, `trace`, `errors`, `sources`, `corpus`, `conversation`.
+Outils exposés : `health`, `organizations`, `traces`, `trace`, `errors`, `sources`, `corpus`, `farmer`, `alert`, `audit`, `conversation`.
 

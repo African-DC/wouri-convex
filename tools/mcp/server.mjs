@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { createInterface } from "node:readline";
 import { appeler, OUTILS, DiagnosticError } from "../shared/client.mjs";
+import { listerRessources, lireRessource } from "./resources.mjs";
 
 /**
  * Serveur MCP WOURI (DEV-01) — diagnostic en lecture seule sur stdio.
@@ -51,8 +52,8 @@ async function traiter(requete) {
     case "initialize":
       return reponse(id, {
         protocolVersion: PROTOCOL_VERSION,
-        capabilities: { tools: {} },
-        serverInfo: { name: "wouri-mcp", version: "0.1.0" },
+        capabilities: { tools: {}, resources: {} },
+        serverInfo: { name: "wouri-mcp", version: "0.2.0" },
       });
 
     case "notifications/initialized":
@@ -60,6 +61,17 @@ async function traiter(requete) {
 
     case "tools/list":
       return reponse(id, { tools: outilsMcp });
+
+    case "resources/list":
+      return reponse(id, { resources: listerRessources() });
+
+    case "resources/read": {
+      const contenu = lireRessource(params?.uri);
+      if (!contenu) {
+        return erreur(id, -32602, `Ressource inconnue : ${params?.uri}`);
+      }
+      return reponse(id, { contents: [contenu] });
+    }
 
     case "tools/call": {
       const nom = params?.name?.replace(/^wouri_/, "");

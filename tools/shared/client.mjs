@@ -15,20 +15,53 @@ const CONVEX_CLI = path.join(
 /**
  * Client partage par la CLI et le serveur MCP.
  *
- * Il delegue a `npx convex run`, qui porte deja l'authentification par cle de
+ * Il delegue a `convex run`, qui porte deja l'authentification par cle de
  * deploiement. Aucun jeton n'est donc manipule ici, et aucune voie
  * d'authentification parallele n'est introduite.
  *
- * Politique DEV-04, appliquee ici et pas seulement documentee :
- * - seules les fonctions du prefixe `diagnostics/readonly` sont appelables ;
- * - toutes sont des requetes, donc aucune ecriture possible ;
- * - la cible par defaut est le staging, la production doit etre demandee
- *   explicitement et reste en lecture seule.
+ * Politique DEV-04, appliquee en code et pas seulement documentee :
+ * - seules les fonctions du prefixe `diagnostics/readonly` sont appelables, et
+ *   toutes sont des requetes : aucune ecriture n'est possible ;
+ * - le deploiement vise est EXPLICITE. Rien ne cible la production par defaut,
+ *   conformement au principe qu'un outil d'exploitation ne doit jamais y
+ *   toucher par omission.
  */
 
 const PREFIXE_AUTORISE = "diagnostics/readonly:";
 
+/**
+ * Deploiements atteignables et drapeaux `convex run` correspondants.
+ *
+ * Le deploiement de developpement est celui par defaut de la CLI Convex : il ne
+ * porte donc aucun drapeau, d'ou le tableau vide. Le drapeau `--prod` designe le
+ * deploiement de PRODUCTION DU PROJET Convex, qui heberge aujourd'hui les
+ * donnees de staging de WOURI : les deux vocabulaires ne se recouvrent pas, et
+ * ce tableau est le seul endroit ou la traduction est faite.
+ */
+export const DEPLOIEMENTS = {
+  dev: [],
+  staging: ["--prod"],
+};
+
+export const DEPLOIEMENT_PAR_DEFAUT = "dev";
+
 export class DiagnosticError extends Error {}
+
+/**
+ * Resout le deploiement demande. `WOURI_TARGET` reste honore, mais uniquement
+ * s'il est pose explicitement : l'absence de choix ne peut pas conduire ailleurs
+ * que sur le deploiement de developpement.
+ */
+export function resoudreDeploiement(demande) {
+  const nom = demande ?? process.env.WOURI_TARGET ?? DEPLOIEMENT_PAR_DEFAUT;
+  const drapeaux = DEPLOIEMENTS[nom];
+  if (!drapeaux) {
+    throw new DiagnosticError(
+      `Deploiement inconnu : ${nom}. Valeurs acceptees : ${Object.keys(DEPLOIEMENTS).join(", ")}.`,
+    );
+  }
+  return { nom, drapeaux };
+}
 
 export async function appeler(fonction, args = {}, options = {}) {
   if (!fonction.startsWith(PREFIXE_AUTORISE)) {
@@ -37,8 +70,8 @@ export async function appeler(fonction, args = {}, options = {}) {
     );
   }
 
-  const cible = options.cible ?? process.env.WOURI_TARGET ?? "prod";
-  const arguments_ = [CONVEX_CLI, "run", "--" + cible, fonction, JSON.stringify(args)];
+  const { drapeaux } = resoudreDeploiement(options.deploiement);
+  const arguments_ = [CONVEX_CLI, "run", ...drapeaux, fonction, JSON.stringify(args)];
 
   return new Promise((resolve, reject) => {
     const enfant = spawn(process.execPath, arguments_, {
@@ -65,12 +98,23 @@ export async function appeler(fonction, args = {}, options = {}) {
   });
 }
 
-/** Surface exposee, identique pour la CLI et le MCP. */
+/**
+ * Surface exposee, identique pour la CLI et le MCP.
+ *
+ * Un parametre dont la description contient « requis » devient obligatoire dans
+ * le schema MCP : une seule declaration sert donc les deux interfaces, elles ne
+ * peuvent pas diverger.
+ */
 export const OUTILS = {
   health: {
     fonction: "diagnostics/readonly:health",
     description: "État de la plateforme : organisations, traces, erreurs, abstentions.",
     parametres: {},
+  },
+  organizations: {
+    fonction: "diagnostics/readonly:organizations",
+    description: "Organisations enregistrées, leur type et leur statut.",
+    parametres: { limit: "nombre maximum de lignes (optionnel)" },
   },
   traces: {
     fonction: "diagnostics/readonly:traces",
@@ -101,6 +145,26 @@ export const OUTILS = {
     parametres: {
       language: "code de langue, par exemple dyu (requis)",
       contient: "texte recherché (optionnel)",
+      limit: "optionnel",
+    },
+  },
+  farmer: {
+    fonction: "diagnostics/readonly:farmer",
+    description:
+      "Métadonnées d'un agriculteur : langue, statut, consentement. Ni numéro ni message.",
+    parametres: { farmerId: "identifiant de l'agriculteur (requis)" },
+  },
+  alert: {
+    fonction: "diagnostics/readonly:alert",
+    description: "Détail d'une alerte : ciblage, statut et répartition des livraisons.",
+    parametres: { alertId: "identifiant de l'alerte (requis)" },
+  },
+  audit: {
+    fonction: "diagnostics/readonly:audit",
+    description: "Journal des opérations sensibles, filtrable par action.",
+    parametres: {
+      action: "action journalisée, par exemple alert.publish (optionnel)",
+      organizationId: "organisation ciblée (optionnel)",
       limit: "optionnel",
     },
   },

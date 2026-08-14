@@ -15,7 +15,9 @@
     "convex:test:knowledge": "vitest run --config vitest.config.ts convex/knowledge convex/rag convex/weather",
     "typecheck": "tsc --noEmit -p convex/tsconfig.json",
     "wouri": "node tools/cli/wouri.mjs",
-    "wouri:mcp": "node tools/mcp/server.mjs"
+    "wouri:mcp": "node tools/mcp/server.mjs",
+    "test:tools": "vitest run --config vitest.tools.config.ts",
+    "registry:check": "node tools/registry/build.mjs --check"
   },
   "dependencies": {
     "@ai-sdk/provider": "3.0.3",
