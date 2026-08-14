@@ -42,13 +42,51 @@ function fichiersTs(racine) {
 // avant analyse. Sinon un `authorize(` commenté pour déboguer, ou une capacité
 // citée dans un message, satisfait les regex de présence : une fonction sans
 // autorisation réelle passerait le test.
+// Retire commentaires et contenu des chaînes en UN seul passage à états. Les
+// `replace` en cascade échouaient dans les deux ordres possibles : chaînes
+// d'abord, les apostrophes des commentaires français (« l'accord ») ouvraient de
+// fausses chaînes ; commentaires d'abord, un `//` dans une chaîne effaçait le
+// guillemet fermant. Un scanner caractère par caractère ne se laisse piéger par
+// aucun des deux. On préserve les fins de ligne pour que le découpage args/handler
+// reste juste.
 function sansCommentaires(code) {
-  return code
-    .replace(/\/\*[\s\S]*?\*\//g, " ")
-    .replace(/\/\/[^\n]*/g, " ")
-    .replace(/"(?:[^"\\]|\\.)*"/g, '""')
-    .replace(/'(?:[^'\\]|\\.)*'/g, "''")
-    .replace(/`(?:[^`\\]|\\.)*`/g, "``");
+  let out = "";
+  let etat = "code"; // code | ligne | bloc | dquote | squote | template
+  for (let i = 0; i < code.length; i++) {
+    const c = code[i];
+    const suiv = code[i + 1];
+    switch (etat) {
+      case "code":
+        if (c === "/" && suiv === "/") { etat = "ligne"; i++; out += "  "; }
+        else if (c === "/" && suiv === "*") { etat = "bloc"; i++; out += "  "; }
+        else if (c === '"') { etat = "dquote"; out += '""'; }
+        else if (c === "'") { etat = "squote"; out += "''"; }
+        else if (c === "`") { etat = "template"; out += "``"; }
+        else out += c;
+        break;
+      case "ligne":
+        if (c === "\n") { etat = "code"; out += "\n"; }
+        break;
+      case "bloc":
+        if (c === "*" && suiv === "/") { etat = "code"; i++; }
+        else if (c === "\n") out += "\n";
+        break;
+      case "dquote":
+        if (c === "\\") i++;
+        else if (c === '"') etat = "code";
+        break;
+      case "squote":
+        if (c === "\\") i++;
+        else if (c === "'") etat = "code";
+        break;
+      case "template":
+        if (c === "\\") i++;
+        else if (c === "`") etat = "code";
+        else if (c === "\n") out += "\n";
+        break;
+    }
+  }
+  return out;
 }
 
 function fonctionsPubliques() {

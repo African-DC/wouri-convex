@@ -290,28 +290,29 @@ export const audit = internalQuery({
   },
   handler: async (ctx, args) => {
     const limit = Math.min(args.limit ?? 20, CAP_LISTE);
-    // Trois cas distincts. Sans filtre : toutes les entrées récentes (by_createdAt),
-    // et non les seules entrées sans organisation. Avec organisation : index org.
-    // Avec action : index action, puis on RESTREINT par organisation si demandée,
-    // sans quoi `--action X --organisation Y` renvoyait les entrées de toutes les
-    // organisations en prétendant filtrer.
+    // Trois cas distincts, alignés sur listAuditLogs. Dès qu'une organisation est
+    // fournie, on passe par SON index et l'action ne fait que restreindre : filtrer
+    // l'action APRÈS troncature renverrait zéro si les dernières entrées d'action
+    // sont celles d'autres organisations, alors que des entrées org+action plus
+    // anciennes existent. Sans organisation mais avec action : index action. Sans
+    // filtre : toutes les entrées récentes (by_createdAt), pas les seules sans org.
     let rows;
-    if (args.action) {
-      const parAction = await ctx.db
-        .query("auditLogs")
-        .withIndex("by_action_and_createdAt", (q) => q.eq("action", args.action!))
-        .order("desc")
-        .take(limit);
-      rows = args.organizationId
-        ? parAction.filter((row) => row.organizationId === args.organizationId)
-        : parAction;
-    } else if (args.organizationId) {
+    if (args.organizationId) {
       const org = args.organizationId;
-      rows = await ctx.db
+      const parOrg = await ctx.db
         .query("auditLogs")
         .withIndex("by_organizationId_and_createdAt", (q) =>
           q.eq("organizationId", org),
         )
+        .order("desc")
+        .take(limit);
+      rows = args.action
+        ? parOrg.filter((row) => row.action === args.action)
+        : parOrg;
+    } else if (args.action) {
+      rows = await ctx.db
+        .query("auditLogs")
+        .withIndex("by_action_and_createdAt", (q) => q.eq("action", args.action!))
         .order("desc")
         .take(limit);
     } else {
