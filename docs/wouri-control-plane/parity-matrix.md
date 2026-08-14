@@ -111,9 +111,9 @@ Colonne Console renseignée depuis le code du dépôt `wouri-console`.
 | `organizations/queries:listOrganizations` | query | `platform.manage` | READ | oui | oui |
 | `pipeline/answer:answerFarmerQuestion` | action | `knowledge.read` | SAFE_WRITE | — | — |
 | `session/me:me` | query | `organization.read` | READ | oui | — |
-| `tools/getFarmerProfile:getFarmerProfile` | query | `farmers.read` | READ | — | — |
-| `tools/getWeather:getWeather` | action | `knowledge.read` | READ | — | — |
-| `tools/searchKnowledge:searchKnowledge` | action | `knowledge.read` | READ | — | — |
+| `tools/getFarmerProfile:getFarmerProfile` | query | `farmers.read` | READ | oui | — |
+| `tools/getWeather:getWeather` | action | `knowledge.read` | READ | oui | — |
+| `tools/searchKnowledge:searchKnowledge` | action | `knowledge.read` | READ | oui | — |
 | `weather/mutations:publishWeatherObservation` | mutation | `weather.publish` | SENSITIVE_WRITE | — | — |
 
 ## Fonctions orphelines
@@ -121,7 +121,7 @@ Colonne Console renseignée depuis le code du dépôt `wouri-console`.
 Exposées par le backend, atteignables depuis aucune interface. Chacune est
 soit un trou du Control Plane, soit une surface à retirer.
 
-**27** sur 65.
+**24** sur 65.
 
 | Fonction | Risque |
 | --- | --- |
@@ -148,9 +148,6 @@ soit un trou du Control Plane, soit une surface à retirer.
 | `organizations/provisioning:activateOrganization` | SENSITIVE_WRITE |
 | `organizations/queries:getMyOrganization` | READ |
 | `pipeline/answer:answerFarmerQuestion` | SAFE_WRITE |
-| `tools/getFarmerProfile:getFarmerProfile` | READ |
-| `tools/getWeather:getWeather` | READ |
-| `tools/searchKnowledge:searchKnowledge` | READ |
 | `weather/mutations:publishWeatherObservation` | SENSITIVE_WRITE |
 
 ## Surface de diagnostic (CLI et MCP)
