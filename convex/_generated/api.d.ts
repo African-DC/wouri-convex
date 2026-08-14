@@ -69,6 +69,7 @@ import type * as session_me from "../session/me.js";
 import type * as testing_contentHelpers from "../testing/contentHelpers.js";
 import type * as testing_demo from "../testing/demo.js";
 import type * as testing_fixtures from "../testing/fixtures.js";
+import type * as testing_linkDemoAccount from "../testing/linkDemoAccount.js";
 import type * as testing_orgHelpers from "../testing/orgHelpers.js";
 import type * as testing_seed from "../testing/seed.js";
 import type * as tools_getFarmerProfile from "../tools/getFarmerProfile.js";
@@ -147,6 +148,7 @@ declare const fullApi: ApiFromModules<{
   "testing/contentHelpers": typeof testing_contentHelpers;
   "testing/demo": typeof testing_demo;
   "testing/fixtures": typeof testing_fixtures;
+  "testing/linkDemoAccount": typeof testing_linkDemoAccount;
   "testing/orgHelpers": typeof testing_orgHelpers;
   "testing/seed": typeof testing_seed;
   "tools/getFarmerProfile": typeof tools_getFarmerProfile;

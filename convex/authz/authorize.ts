@@ -39,8 +39,21 @@ const loadAuthRecords = async (
       { field: "userId", value: subject },
     ],
   });
-  const organizationId = session?.activeOrganizationId;
+  if (!session) return { session: null, member: null };
+
+  // L'organisation vient normalement de la session (activeOrganizationId).
+  // Quand elle ne la declare pas — c'est le cas d'une session fraiche creee
+  // avant tout choix d'organisation — on la derive de l'adhesion du membre,
+  // MAIS uniquement s'il n'en a qu'une seule. Avec plusieurs adhesions, le
+  // choix serait ambigu : on refuse plutot que de deviner. Dans les deux cas
+  // l'organisation reste calculee cote serveur, jamais fournie par l'appelant.
+  const declared = session.activeOrganizationId;
+  const organizationId =
+    typeof declared === "string"
+      ? declared
+      : await soleMembershipOrganization(ctx, subject);
   if (typeof organizationId !== "string") return { session: null, member: null };
+
   const member = await ctx.runQuery(components.betterAuth.adapter.findOne, {
     model: "member",
     where: [
@@ -48,7 +61,22 @@ const loadAuthRecords = async (
       { field: "userId", value: subject },
     ],
   });
-  return { session, member };
+  return { session: { ...session, activeOrganizationId: organizationId }, member };
+};
+
+// Retourne l'organisation du membre s'il n'en a exactement qu'une, sinon null.
+const soleMembershipOrganization = async (
+  ctx: AuthorizationCtx,
+  subject: string,
+): Promise<string | null> => {
+  const memberships = await ctx.runQuery(components.betterAuth.adapter.findMany, {
+    model: "member",
+    where: [{ field: "userId", value: subject }],
+    paginationOpts: { numItems: 2, cursor: null },
+  });
+  if (memberships.page.length !== 1) return null;
+  const organizationId = memberships.page[0]?.organizationId;
+  return typeof organizationId === "string" ? organizationId : null;
 };
 
 const loadSnapshot = async (
