@@ -36,6 +36,8 @@ import type * as farmers_model from "../farmers/model.js";
 import type * as farmers_mutations from "../farmers/mutations.js";
 import type * as farmers_queries from "../farmers/queries.js";
 import type * as http from "../http.js";
+import type * as integration_dispatch from "../integration/dispatch.js";
+import type * as integration_ingest from "../integration/ingest.js";
 import type * as knowledge_ingest from "../knowledge/ingest.js";
 import type * as knowledge_model from "../knowledge/model.js";
 import type * as knowledge_mutations from "../knowledge/mutations.js";
@@ -121,6 +123,8 @@ declare const fullApi: ApiFromModules<{
   "farmers/mutations": typeof farmers_mutations;
   "farmers/queries": typeof farmers_queries;
   http: typeof http;
+  "integration/dispatch": typeof integration_dispatch;
+  "integration/ingest": typeof integration_ingest;
   "knowledge/ingest": typeof knowledge_ingest;
   "knowledge/model": typeof knowledge_model;
   "knowledge/mutations": typeof knowledge_mutations;

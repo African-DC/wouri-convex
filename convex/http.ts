@@ -74,4 +74,138 @@ http.route({
   }),
 });
 
+// Chantier 1 — le moteur (via le serveur WhatsApp) émet un événement par tour.
+// On en fait une trace, visible dans la Console au même endroit que le reste.
+const STATUTS_EVENEMENT = new Set(["succeeded", "abstained", "failed"]);
+
+http.route({
+  path: "/ingest/event",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!cleValide(request, "X-Ingest-Key", "INGEST_KEY")) {
+      return refus("unauthorized");
+    }
+    let corps: unknown;
+    try {
+      corps = await request.json();
+    } catch {
+      return refus("invalid_json", 400);
+    }
+    const e = corps as Record<string, unknown>;
+    // Validation stricte : on n'insère jamais un événement mal formé, et un
+    // champ absent ne devient pas une chaîne vide.
+    if (typeof e.requestId !== "string" || typeof e.channel !== "string") {
+      return refus("requestId and channel required", 400);
+    }
+    if (typeof e.status !== "string" || !STATUTS_EVENEMENT.has(e.status)) {
+      return refus("status must be succeeded | abstained | failed", 400);
+    }
+    const { traceId } = await ctx.runMutation(
+      internal.integration.ingest.recordEngineEvent,
+      {
+        requestId: e.requestId,
+        channel: e.channel,
+        status: e.status as "succeeded" | "abstained" | "failed",
+        ...(typeof e.language === "string" ? { language: e.language } : {}),
+        ...(typeof e.intent === "string" ? { intent: e.intent } : {}),
+        ...(typeof e.source === "string" ? { source: e.source } : {}),
+        ...(typeof e.latencyMs === "number" ? { latencyMs: e.latencyMs } : {}),
+        ...(typeof e.errorType === "string" ? { errorType: e.errorType } : {}),
+      },
+    );
+    return json({ traceId });
+  }),
+});
+
+// Chantier 2 — le serveur WhatsApp confirme le statut d'une livraison. On le
+// rapproche par providerMessageId (index déjà en place) et on avance l'état,
+// sans jamais régresser une livraison déjà partie.
+const ETATS_LIVRAISON = new Set(["sent", "delivered", "read", "replied", "failed"]);
+
+http.route({
+  path: "/whatsapp/callback",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!cleValide(request, "X-Callback-Key", "WHATSAPP_CALLBACK_KEY")) {
+      return refus("unauthorized");
+    }
+    let corps: unknown;
+    try {
+      corps = await request.json();
+    } catch {
+      return refus("invalid_json", 400);
+    }
+    const c = corps as Record<string, unknown>;
+    if (typeof c.providerMessageId !== "string") {
+      return refus("providerMessageId required", 400);
+    }
+    if (typeof c.state !== "string" || !ETATS_LIVRAISON.has(c.state)) {
+      return refus("state invalid", 400);
+    }
+    const { deliveryId } = await ctx.runMutation(
+      internal.alerts.mutations.recordDeliveryCallback,
+      {
+        providerMessageId: c.providerMessageId,
+        state: c.state as "sent" | "delivered" | "read" | "replied" | "failed",
+        ...(typeof c.provider === "string" ? { provider: c.provider } : {}),
+      },
+    );
+    // deliveryId null = aucun message ne correspond. Ce n'est pas une erreur du
+    // callback : on le signale pour que l'appelant sache que rien n'a bougé.
+    return json({ matched: deliveryId !== null, deliveryId });
+  }),
+});
+
+// Chantier 2 — diffusion en pull. Le serveur WhatsApp récupère les livraisons à
+// envoyer (Convex ne peut pas l'atteindre, il est sur un réseau privé). La
+// réponse ne contient jamais de numéro : seulement une référence de contact que
+// le serveur, seul détenteur des numéros, résout de son côté.
+http.route({
+  path: "/alerts/pending",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    if (!cleValide(request, "X-Dispatch-Key", "DISPATCH_KEY")) {
+      return refus("unauthorized");
+    }
+    const livraisons = await ctx.runQuery(
+      internal.integration.dispatch.pendingDeliveries,
+      {},
+    );
+    return json({ deliveries: livraisons });
+  }),
+});
+
+// Le serveur confirme qu'une livraison est partie et fournit l'identifiant du
+// message. On le stampe, l'état passe à « sent », et le reste du cycle arrive
+// par /whatsapp/callback.
+http.route({
+  path: "/alerts/dispatched",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!cleValide(request, "X-Dispatch-Key", "DISPATCH_KEY")) {
+      return refus("unauthorized");
+    }
+    let corps: unknown;
+    try {
+      corps = await request.json();
+    } catch {
+      return refus("invalid_json", 400);
+    }
+    const d = corps as Record<string, unknown>;
+    if (typeof d.deliveryId !== "string" || typeof d.providerMessageId !== "string") {
+      return refus("deliveryId and providerMessageId required", 400);
+    }
+    // La mutation valide l'identifiant (normalizeId) : un identifiant d'une autre
+    // table ou mal formé y est refusé proprement plutôt que de lever.
+    const resultat = await ctx.runMutation(
+      internal.integration.dispatch.markDispatched,
+      { deliveryId: d.deliveryId, providerMessageId: d.providerMessageId },
+    );
+    if (!resultat.updated && resultat.reason === "invalid_id") {
+      return refus("invalid deliveryId", 400);
+    }
+    return json(resultat);
+  }),
+});
+
 export default http;

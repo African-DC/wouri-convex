@@ -152,6 +152,11 @@ export const RISQUES = {
   "aiops/replay:captureReplaySnapshot": "SAFE_WRITE",
   "aiops/replay:captureSnapshotFromTrace": "SAFE_WRITE",
 
+  // Intégration moteur / WhatsApp (fonctions internes, appelées par httpAction signée)
+  "corpus/export:corpusForEngine": "READ",
+  "integration/ingest:recordEngineEvent": "SAFE_WRITE",
+  "integration/dispatch:pendingDeliveries": "READ",
+  "integration/dispatch:markDispatched": "SENSITIVE_WRITE",
   // Outils métier et pipeline
   "tools/getFarmerProfile:getFarmerProfile": "READ",
   "tools/getWeather:getWeather": "READ",

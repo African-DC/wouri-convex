@@ -58,6 +58,9 @@ export const alertTables = {
     .index("by_alertId_and_state", ["alertId", "state"])
     .index("by_alertId_and_farmerId", ["alertId", "farmerId"])
     .index("by_farmerId_and_state", ["farmerId", "state"])
+    // Diffusion en pull : le serveur WhatsApp récupère les livraisons à envoyer,
+    // toutes organisations confondues, dans l'ordre de création.
+    .index("by_state_and_createdAt", ["state", "createdAt"])
     .index("by_provider_and_providerMessageId", [
       "provider",
       "providerMessageId",
