@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
+import { ERROR_TYPES, WouriError } from "../lib/errors";
 
 // ALT-01 — audience targeting + tenant scoping. Every helper takes
 // organizationId EXPLICITLY so the public functions stay the only place that
@@ -10,6 +11,15 @@ import type { Id } from "../_generated/dataModel";
 // transaction budget. previewAudience and publishAlert share these ceilings.
 const RULE_SCAN_LIMIT = 5000;
 const MAX_AUDIENCE = 20000;
+
+// ALT-05 — consent purpose governing outbound alerts. Opt-in is required: a
+// farmer with no consent row is NOT part of an audience. Withdrawal therefore
+// blocks any further delivery, which is the whole point of the opt-out.
+export const ALERT_CONSENT_PURPOSE = "whatsapp_alerts";
+
+// One index read per farmer: bounded so a huge audience cannot exceed the
+// transaction budget. Beyond this we fail closed rather than skip the check.
+const CONSENT_CHECK_LIMIT = 2000;
 
 export const audienceKindValidator = v.union(
   v.literal("farmer"),
@@ -83,22 +93,75 @@ const resolveRule = async (
   }
 };
 
-// Union of all rules, deduplicated, restricted to farmers of organizationId.
+// ALT-05 — keeps only farmers whose most recent consent for the alert purpose
+// is "granted". Absence of a row means no opt-in, so the farmer is excluded:
+// silence is never consent.
+const filterByConsent = async (
+  ctx: QueryCtx,
+  farmerIds: Id<"farmers">[],
+): Promise<Id<"farmers">[]> => {
+  if (farmerIds.length > CONSENT_CHECK_LIMIT) {
+    // Failing closed. Sending to an unverified audience would be worse than
+    // refusing: the alert leaves the platform and cannot be recalled.
+    throw new WouriError(
+      ERROR_TYPES.DELIVERY,
+      `Audience of ${farmerIds.length} exceeds the ${CONSENT_CHECK_LIMIT} farmers whose consent can be verified in one operation. Narrow the targeting.`,
+    );
+  }
+  const consenting: Id<"farmers">[] = [];
+  for (const farmerId of farmerIds) {
+    const latest = await ctx.db
+      .query("farmerConsents")
+      .withIndex("by_farmerId_and_purpose_and_recordedAt", (q) =>
+        q.eq("farmerId", farmerId).eq("purpose", ALERT_CONSENT_PURPOSE),
+      )
+      .order("desc")
+      .first();
+    if (latest?.state === "granted") consenting.push(farmerId);
+  }
+  return consenting;
+};
+
+// Union of all rules, deduplicated, restricted to farmers of organizationId,
+// then restricted again to those who consented. previewAudience and publishAlert
+// both go through here, so the previewed count is exactly what gets delivered.
 export const resolveAudience = async (
   ctx: QueryCtx,
   organizationId: string,
   rules: AudienceRule[],
 ): Promise<Id<"farmers">[]> => {
   const seen = new Set<string>();
-  const audience: Id<"farmers">[] = [];
+  const cibles: Id<"farmers">[] = [];
   for (const rule of rules) {
     const farmerIds = await resolveRule(ctx, organizationId, rule);
     for (const farmerId of farmerIds) {
       if (seen.has(farmerId)) continue;
       seen.add(farmerId);
-      audience.push(farmerId);
-      if (audience.length >= MAX_AUDIENCE) return audience;
+      cibles.push(farmerId);
+      if (cibles.length >= MAX_AUDIENCE) return filterByConsent(ctx, cibles);
     }
   }
-  return audience;
+  return filterByConsent(ctx, cibles);
+};
+
+// Same targeting, without the consent filter. Exposed so an operator can see how
+// many farmers the rules match and how many of them are reachable: a preview
+// showing only the reachable count hides an opt-out problem instead of naming it.
+export const resolveTargeted = async (
+  ctx: QueryCtx,
+  organizationId: string,
+  rules: AudienceRule[],
+): Promise<Id<"farmers">[]> => {
+  const seen = new Set<string>();
+  const cibles: Id<"farmers">[] = [];
+  for (const rule of rules) {
+    const farmerIds = await resolveRule(ctx, organizationId, rule);
+    for (const farmerId of farmerIds) {
+      if (seen.has(farmerId)) continue;
+      seen.add(farmerId);
+      cibles.push(farmerId);
+      if (cibles.length >= MAX_AUDIENCE) return cibles;
+    }
+  }
+  return cibles;
 };

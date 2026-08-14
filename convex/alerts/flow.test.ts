@@ -2,7 +2,7 @@
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
 import schema from "../schema";
-import { createFarmerForOrg, addZoneLink } from "../farmers/model";
+import { createFarmerForOrg, addZoneLink, addConsent } from "../farmers/model";
 import {
   createAlertForOrg,
   addAudienceRule,
@@ -11,6 +11,7 @@ import {
   setDeliveryStateByAlertAndFarmer,
 } from "../alerts/model";
 import { resolveAlertContext } from "../conversations/model";
+import { ALERT_CONSENT_PURPOSE } from "../alerts/audience";
 
 // convex-test exige le map COMPLET des modules pour resoudre les fonctions
 // enregistrees : un map partiel les rend silencieusement inatteignables.
@@ -26,6 +27,8 @@ describe("alert to conversation flow", () => {
       const now = 1000;
       const farmer = await createFarmerForOrg(ctx, "org-a", "a1", now);
       await addZoneLink(ctx, "org-a", farmer, "abidjan-nord");
+      // ALT-05 : l opt-in conditionne desormais l appartenance a l audience.
+      await addConsent(ctx, farmer, ALERT_CONSENT_PURPOSE, "v1", "granted", "test", now);
       const alertId = await createAlertForOrg(
         ctx,
         "org-a",

@@ -11,6 +11,7 @@ export {
   audienceKindValidator,
   audienceRuleValidator,
   resolveAudience,
+  resolveTargeted,
 } from "./audience";
 export type { AudienceRule } from "./audience";
 

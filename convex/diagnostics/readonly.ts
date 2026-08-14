@@ -18,6 +18,7 @@ import { internalQuery } from "../_generated/server";
 
 const CAP_LISTE = 100;
 
+// @reflete aiops/health:health
 export const health = internalQuery({
   args: {},
   handler: async (ctx) => {
@@ -41,6 +42,7 @@ export const health = internalQuery({
   },
 });
 
+// @reflete aiops/traces:listTraces
 export const traces = internalQuery({
   args: {
     resultStatus: v.optional(
@@ -76,6 +78,7 @@ export const traces = internalQuery({
   },
 });
 
+// @reflete aiops/traces:getTrace
 export const trace = internalQuery({
   args: { traceId: v.id("executionTraces") },
   handler: async (ctx, args) => {
@@ -109,6 +112,7 @@ export const trace = internalQuery({
   },
 });
 
+// @reflete aiops/traces:listErrors
 export const errors = internalQuery({
   args: { errorType: v.optional(v.string()), limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
@@ -132,6 +136,7 @@ export const errors = internalQuery({
   },
 });
 
+// @reflete knowledge/queries:listKnowledgeSources @reflete knowledge/queries:getProvenance
 export const sources = internalQuery({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
@@ -157,6 +162,7 @@ export const sources = internalQuery({
   },
 });
 
+// @reflete language/fastPath:listApprovedPhrases
 export const corpus = internalQuery({
   args: {
     language: v.string(),
@@ -195,6 +201,7 @@ export const corpus = internalQuery({
   },
 });
 
+// @reflete conversations/queries:getConversationContext
 export const conversation = internalQuery({
   args: { contextId: v.id("conversationContexts") },
   handler: async (ctx, args) => {

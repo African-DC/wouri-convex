@@ -2,11 +2,13 @@
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
 import schema from "../schema";
+import { ALERT_CONSENT_PURPOSE } from "../alerts/audience";
 import {
   createFarmerForOrg,
   getFarmerForOrg,
   countActiveFarmersBounded,
   addZoneLink,
+  addConsent,
 } from "../farmers/model";
 import { resolveAudience } from "../alerts/model";
 import {
@@ -38,6 +40,10 @@ describe("cross-organization isolation", () => {
       const b1 = await createFarmerForOrg(ctx, "org-b", "b1", 1);
       await addZoneLink(ctx, "org-a", a1, "abidjan-nord");
       await addZoneLink(ctx, "org-b", b1, "abidjan-nord");
+      // Les deux consentent : ce test porte sur l isolation entre organisations,
+      // pas sur le consentement, et resolveAudience filtre desormais les deux.
+      await addConsent(ctx, a1, ALERT_CONSENT_PURPOSE, "v1", "granted", "test", 1);
+      await addConsent(ctx, b1, ALERT_CONSENT_PURPOSE, "v1", "granted", "test", 1);
       return { a1, b1 };
     });
     const audience = await t.run((ctx) =>
