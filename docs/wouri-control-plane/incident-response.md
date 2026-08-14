@@ -22,12 +22,20 @@ régressions soudaines.
 1. Retrouver la conversation, puis la trace correspondante.
 2. `wouri trace <id>` : lire les étapes. Un garde-fou `evidence-required` en
    échec signifie que le système a refusé de répondre — ce n'est pas une panne.
-3. Vérifier les versions portées par la trace : prompt, politique, modèle.
+3. Vérifier les versions portées par la trace : prompt, politique, modèle. Elles
+   disent quelle configuration était en vigueur, **elles ne permettent pas encore
+   de corriger** : voir l'avertissement ci-dessous.
 4. `wouri sources` : la source attendue est-elle présente et à jour ?
-5. Si une version récente est en cause, la remplacer depuis **Prompts et
-   modèles** en réactivant la précédente. Aucune version n'est supprimée.
-6. Figer l'exécution depuis la fiche de trace avant de changer quoi que ce soit :
-   l'instantané garde la configuration fautive.
+5. Figer l'exécution depuis la fiche de trace : l'instantané garde la
+   configuration fautive pour l'analyse.
+6. La correction réelle passe aujourd'hui par la source, pas par la
+   configuration : retirer ou reverser une version de source erronée.
+
+> **Ne comptez pas sur les registres pour éteindre un incident.** La génération
+> de réponse n'appelle aucun modèle : le pipeline concatène les passages trouvés.
+> Réactiver une version antérieure de prompt ou de modèle ne change rien au
+> comportement observé. Les registres servent à savoir ce qui était en vigueur,
+> pas à agir dessus. Voir `production-safety.md`.
 
 ## Une traduction est mauvaise
 

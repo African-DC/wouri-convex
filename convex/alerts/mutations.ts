@@ -62,6 +62,52 @@ export const createAlert = mutation({
   },
 });
 
+// ALT-01 — crée un brouillon ET ses règles de ciblage en UNE transaction.
+// La Console enchaînait auparavant createAlert puis N addAlertAudienceRule : si
+// une règle échouait, un brouillon partiel subsistait alors que l'écran annonçait
+// « rien n'a été enregistré ». Ici tout réussit ou rien n'est écrit.
+export const createAlertWithRules = mutation({
+  args: {
+    message: v.string(),
+    sourceVersionId: v.optional(v.id("knowledgeSourceVersions")),
+    rules: v.array(audienceRuleValidator),
+  },
+  handler: async (ctx, args) => {
+    const auth = await authorizeMutation(ctx, { permission: CAPABILITIES.alertsCreate });
+    const now = Date.now();
+    const alertId = await createAlertForOrg(
+      ctx,
+      auth.organizationId,
+      auth.memberId,
+      {
+        message: args.message,
+        ...(args.sourceVersionId !== undefined ? { sourceVersionId: args.sourceVersionId } : {}),
+      },
+      now,
+    );
+    for (const rule of args.rules) {
+      await addAudienceRule(ctx, auth.organizationId, alertId, {
+        kind: rule.kind,
+        targetKey: rule.targetKey,
+      });
+    }
+    await recordAudit(
+      ctx,
+      {
+        organizationId: auth.organizationId,
+        actorSubject: await actorSubjectFor(ctx, auth),
+        actorMemberId: auth.memberId,
+        action: "alert.create",
+        resourceType: "alert",
+        resourceId: alertId,
+        after: { status: "draft", rules: args.rules.length },
+      },
+      now,
+    );
+    return alertId;
+  },
+});
+
 // ALT-01 — attach a targeting rule to a draft alert.
 export const addAlertAudienceRule = mutation({
   args: {

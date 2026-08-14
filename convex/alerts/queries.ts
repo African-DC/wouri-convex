@@ -9,6 +9,7 @@ import {
   resolveAudience,
   resolveTargeted,
 } from "./model";
+import { CONSENT_CHECK_LIMIT } from "./audience";
 
 const PREVIEW_SAMPLE_SIZE = 25;
 
@@ -23,11 +24,29 @@ export const previewAudience = query({
   handler: async (ctx, args) => {
     const auth = await authorize(ctx, { permission: CAPABILITIES.alertsCreate });
     const targeted = await resolveTargeted(ctx, auth.organizationId, args.rules);
+
+    // Au-dela du plafond, la verification des consentements ne tient pas dans une
+    // transaction et la publication refusera. L'apercu doit le DIRE, pas lever :
+    // une exception ici remplace l'ecran entier par une erreur et fait perdre a
+    // l'operateur le message qu'il vient d'ecrire.
+    if (targeted.length > CONSENT_CHECK_LIMIT) {
+      return {
+        count: null,
+        targeted: targeted.length,
+        withoutConsent: null,
+        plafond: CONSENT_CHECK_LIMIT,
+        depassement: true,
+        sample: [],
+      };
+    }
+
     const farmerIds = await resolveAudience(ctx, auth.organizationId, args.rules);
     return {
       count: farmerIds.length,
       targeted: targeted.length,
       withoutConsent: targeted.length - farmerIds.length,
+      plafond: CONSENT_CHECK_LIMIT,
+      depassement: false,
       sample: farmerIds.slice(0, PREVIEW_SAMPLE_SIZE),
     };
   },

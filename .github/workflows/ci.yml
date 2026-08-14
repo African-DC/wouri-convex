@@ -34,3 +34,12 @@ jobs:
 
       - name: Test
         run: pnpm test:convex
+
+      # Les garde-fous du plan de contrôle doivent tourner en CI, sinon la
+      # politique de lecture seule et le classement de risque ne sont défendus
+      # par rien : une surface non classée ou une écriture exposée passerait.
+      - name: Test outillage (politique, couverture d'autorisation)
+        run: pnpm test:tools
+
+      - name: Matrice de parité à jour
+        run: pnpm registry:check

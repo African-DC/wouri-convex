@@ -38,6 +38,19 @@ function fichiersTs(racine) {
  * fonction interne declaree juste apres serait absorbee dans le corps de la
  * precedente, et le test analyserait le mauvais code.
  */
+// Retire commentaires de ligne, de bloc, et contenu des littéraux de chaîne
+// avant analyse. Sinon un `authorize(` commenté pour déboguer, ou une capacité
+// citée dans un message, satisfait les regex de présence : une fonction sans
+// autorisation réelle passerait le test.
+function sansCommentaires(code) {
+  return code
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/\/\/[^\n]*/g, " ")
+    .replace(/"(?:[^"\\]|\\.)*"/g, '""')
+    .replace(/'(?:[^'\\]|\\.)*'/g, "''")
+    .replace(/`(?:[^`\\]|\\.)*`/g, "``");
+}
+
 function fonctionsPubliques() {
   const trouvees = [];
   for (const fichier of fichiersTs(CONVEX)) {
@@ -50,7 +63,7 @@ function fonctionsPubliques() {
     tous.forEach((m, i) => {
       if (!["query", "mutation", "action"].includes(m[2])) return;
       const fin = i + 1 < tous.length ? tous[i + 1].index : source.length;
-      const corps = source.slice(m.index, fin);
+      const corps = sansCommentaires(source.slice(m.index, fin));
       const debutHandler = corps.indexOf("handler:");
       trouvees.push({
         cle: `${module}:${m[1]}`,

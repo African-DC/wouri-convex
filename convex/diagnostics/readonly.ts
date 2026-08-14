@@ -25,10 +25,14 @@ export const health = internalQuery({
     const runtime = globalThis as typeof globalThis & {
       process?: { env?: Record<string, string | undefined> };
     };
+    // order("desc") est obligatoire : l'ordre par défaut de Convex est croissant
+    // sur _creationTime, donc sans lui `take` renvoie les 100 traces les plus
+    // ANCIENNES. `wouri doctor` affichait alors des chiffres figés sur le premier
+    // jour d'usage, masquant un incident en cours.
     const [organisations, traces, erreurs] = await Promise.all([
       ctx.db.query("organizationProfiles").take(CAP_LISTE),
-      ctx.db.query("executionTraces").take(CAP_LISTE),
-      ctx.db.query("errorReports").take(CAP_LISTE),
+      ctx.db.query("executionTraces").order("desc").take(CAP_LISTE),
+      ctx.db.query("errorReports").order("desc").take(CAP_LISTE),
     ]);
     return {
       environnement: runtime.process?.env?.WOURI_ENV ?? "development",
@@ -286,19 +290,37 @@ export const audit = internalQuery({
   },
   handler: async (ctx, args) => {
     const limit = Math.min(args.limit ?? 20, CAP_LISTE);
-    const rows = args.action
-      ? await ctx.db
-          .query("auditLogs")
-          .withIndex("by_action_and_createdAt", (q) => q.eq("action", args.action!))
-          .order("desc")
-          .take(limit)
-      : await ctx.db
-          .query("auditLogs")
-          .withIndex("by_organizationId_and_createdAt", (q) =>
-            q.eq("organizationId", args.organizationId),
-          )
-          .order("desc")
-          .take(limit);
+    // Trois cas distincts. Sans filtre : toutes les entrées récentes (by_createdAt),
+    // et non les seules entrées sans organisation. Avec organisation : index org.
+    // Avec action : index action, puis on RESTREINT par organisation si demandée,
+    // sans quoi `--action X --organisation Y` renvoyait les entrées de toutes les
+    // organisations en prétendant filtrer.
+    let rows;
+    if (args.action) {
+      const parAction = await ctx.db
+        .query("auditLogs")
+        .withIndex("by_action_and_createdAt", (q) => q.eq("action", args.action!))
+        .order("desc")
+        .take(limit);
+      rows = args.organizationId
+        ? parAction.filter((row) => row.organizationId === args.organizationId)
+        : parAction;
+    } else if (args.organizationId) {
+      const org = args.organizationId;
+      rows = await ctx.db
+        .query("auditLogs")
+        .withIndex("by_organizationId_and_createdAt", (q) =>
+          q.eq("organizationId", org),
+        )
+        .order("desc")
+        .take(limit);
+    } else {
+      rows = await ctx.db
+        .query("auditLogs")
+        .withIndex("by_createdAt")
+        .order("desc")
+        .take(limit);
+    }
     return rows.map((row) => ({
       id: row._id,
       action: row.action,

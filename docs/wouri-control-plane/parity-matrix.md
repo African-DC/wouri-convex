@@ -5,7 +5,7 @@ la main : il serait faux au premier commit suivant. Le générateur échoue si
 une fonction publique n'est pas classée en risque, pour qu'aucune surface
 n'entre sans décision explicite.
 
-Fonctions publiques recensées : **65**. Capacités déclarées : **22**.
+Fonctions publiques recensées : **66**. Capacités déclarées : **22**.
 
 ## Classes de risque et politique d'exposition
 
@@ -29,7 +29,7 @@ Fonctions publiques recensées : **65**. Capacités déclarées : **22**.
 | `farmers.read` | 5 | clientAdmin, clientOperator |
 | `farmers.write` | 6 | clientAdmin, clientOperator |
 | `consents.write` | 2 | clientAdmin |
-| `alerts.create` | 3 | sodexamOperator, cnraOperator, clientAdmin |
+| `alerts.create` | 4 | sodexamOperator, cnraOperator, clientAdmin |
 | `alerts.publish` | 2 | sodexamOperator, cnraOperator, clientAdmin |
 | `alerts.read` | 5 | sodexamOperator, cnraOperator, clientAdmin, clientOperator |
 | `weather.publish` | 1 | sodexamOperator |
@@ -71,9 +71,10 @@ Colonne Console renseignée depuis le code du dépôt `wouri-console`.
 | `aiops/traces:getTrace` | query | `aiops.read` | READ | oui | oui |
 | `aiops/traces:listErrors` | query | `aiops.read` | READ | oui | oui |
 | `aiops/traces:listTraces` | query | `aiops.read` | READ | oui | oui |
-| `alerts/mutations:addAlertAudienceRule` | mutation | `alerts.create` | SAFE_WRITE | oui | — |
+| `alerts/mutations:addAlertAudienceRule` | mutation | `alerts.create` | SAFE_WRITE | — | — |
 | `alerts/mutations:cancelAlert` | mutation | `alerts.publish` | SENSITIVE_WRITE | oui | — |
-| `alerts/mutations:createAlert` | mutation | `alerts.create` | SAFE_WRITE | oui | — |
+| `alerts/mutations:createAlert` | mutation | `alerts.create` | SAFE_WRITE | — | — |
+| `alerts/mutations:createAlertWithRules` | mutation | `alerts.create` | SAFE_WRITE | oui | — |
 | `alerts/mutations:publishAlert` | mutation | `alerts.publish` | SENSITIVE_WRITE | oui | — |
 | `alerts/queries:getAlert` | query | `alerts.read` | READ | oui | oui |
 | `alerts/queries:listAlerts` | query | `alerts.read` | READ | oui | — |
@@ -121,7 +122,7 @@ Colonne Console renseignée depuis le code du dépôt `wouri-console`.
 Exposées par le backend, atteignables depuis aucune interface. Chacune est
 soit un trou du Control Plane, soit une surface à retirer.
 
-**24** sur 65.
+**26** sur 66.
 
 | Fonction | Risque |
 | --- | --- |
@@ -133,6 +134,8 @@ soit un trou du Control Plane, soit une surface à retirer.
 | `aiops/registry:getActivePrompt` | READ |
 | `aiops/replay:captureReplaySnapshot` | SAFE_WRITE |
 | `aiops/replay:getReplaySnapshot` | READ |
+| `alerts/mutations:addAlertAudienceRule` | SAFE_WRITE |
+| `alerts/mutations:createAlert` | SAFE_WRITE |
 | `farmers/mutations:addFarmerToGroup` | SAFE_WRITE |
 | `farmers/mutations:createFarmerGroup` | SAFE_WRITE |
 | `farmers/mutations:linkFarmerCrop` | SAFE_WRITE |

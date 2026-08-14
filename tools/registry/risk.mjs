@@ -94,6 +94,7 @@ export const RISQUES = {
   "alerts/queries:getAlert": "READ",
   "alerts/queries:previewAudience": "READ",
   "alerts/mutations:createAlert": "SAFE_WRITE",
+  "alerts/mutations:createAlertWithRules": "SAFE_WRITE",
   "alerts/mutations:addAlertAudienceRule": "SAFE_WRITE",
   // Sort de la plateforme vers des téléphones réels : irréversible.
   "alerts/mutations:publishAlert": "SENSITIVE_WRITE",

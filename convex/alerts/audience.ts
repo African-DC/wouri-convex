@@ -17,9 +17,16 @@ const MAX_AUDIENCE = 20000;
 // blocks any further delivery, which is the whole point of the opt-out.
 export const ALERT_CONSENT_PURPOSE = "whatsapp_alerts";
 
+// Version en vigueur du texte de consentement pour ce motif. Autorité serveur :
+// un client ne doit pas pouvoir attester un accord sous une version qu'il choisit
+// (voir recordConsent). Elle changera avec le texte, jamais par l'interface.
+export const ALERT_CONSENT_POLICY_VERSION = "v1";
+
 // One index read per farmer: bounded so a huge audience cannot exceed the
 // transaction budget. Beyond this we fail closed rather than skip the check.
-const CONSENT_CHECK_LIMIT = 2000;
+// This is the REAL ceiling of any diffusion — MAX_AUDIENCE only bounds the
+// targeting pass, which does not read consents.
+export const CONSENT_CHECK_LIMIT = 2000;
 
 export const audienceKindValidator = v.union(
   v.literal("farmer"),
@@ -138,8 +145,13 @@ export const resolveAudience = async (
       if (seen.has(farmerId)) continue;
       seen.add(farmerId);
       cibles.push(farmerId);
-      if (cibles.length >= MAX_AUDIENCE) return filterByConsent(ctx, cibles);
+      // Pas de sortie anticipée sur MAX_AUDIENCE ici : elle transmettait
+      // exactement 20 000 identifiants à filterByConsent, qui refuse au-delà de
+      // 2 000. La branche ne pouvait donc jamais rendre de valeur, et laissait
+      // croire à un plafond dix fois supérieur au plafond réel.
+      if (cibles.length > CONSENT_CHECK_LIMIT) break;
     }
+    if (cibles.length > CONSENT_CHECK_LIMIT) break;
   }
   return filterByConsent(ctx, cibles);
 };

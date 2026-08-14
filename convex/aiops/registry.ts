@@ -4,7 +4,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
 import { authorize, authorizeMutation, CAPABILITIES } from "../authorization";
 import { WouriError, ERROR_TYPES } from "../lib/errors";
-import { auditAiops } from "./shared";
+import { auditAiops, assertPlatformOrganization } from "./shared";
 
 // AI-05 / §26 — versioned prompt/policy/model registry with controlled
 // activation. The three registries share the same key/version/status shape, so
@@ -92,6 +92,8 @@ export const createPromptVersion = mutation({
     const auth = await authorizeMutation(ctx, {
       permission: CAPABILITIES.featureFlagsManage,
     });
+    // Ressource globale à la plateforme : garde explicite (voir shared.ts).
+    await assertPlatformOrganization(ctx, auth);
     const now = Date.now();
     const version = await nextVersion(ctx, "promptVersions", args.key);
     const id = await ctx.db.insert("promptVersions", {
@@ -118,6 +120,8 @@ export const activatePromptVersion = mutation({
     const auth = await authorizeMutation(ctx, {
       permission: CAPABILITIES.featureFlagsManage,
     });
+    // Ressource globale à la plateforme : garde explicite (voir shared.ts).
+    await assertPlatformOrganization(ctx, auth);
     const now = Date.now();
     const target = await activateVersion(ctx, "promptVersions", args.key, args.version);
     await auditAiops(ctx, auth, now, {
@@ -146,6 +150,8 @@ export const createPolicyVersion = mutation({
     const auth = await authorizeMutation(ctx, {
       permission: CAPABILITIES.featureFlagsManage,
     });
+    // Ressource globale à la plateforme : garde explicite (voir shared.ts).
+    await assertPlatformOrganization(ctx, auth);
     const now = Date.now();
     const version = await nextVersion(ctx, "policyVersions", args.key);
     const id = await ctx.db.insert("policyVersions", {
@@ -172,6 +178,8 @@ export const activatePolicyVersion = mutation({
     const auth = await authorizeMutation(ctx, {
       permission: CAPABILITIES.featureFlagsManage,
     });
+    // Ressource globale à la plateforme : garde explicite (voir shared.ts).
+    await assertPlatformOrganization(ctx, auth);
     const now = Date.now();
     const target = await activateVersion(ctx, "policyVersions", args.key, args.version);
     await auditAiops(ctx, auth, now, {
@@ -205,6 +213,8 @@ export const createModelConfig = mutation({
     const auth = await authorizeMutation(ctx, {
       permission: CAPABILITIES.featureFlagsManage,
     });
+    // Ressource globale à la plateforme : garde explicite (voir shared.ts).
+    await assertPlatformOrganization(ctx, auth);
     const now = Date.now();
     const version = await nextVersion(ctx, "modelConfigs", args.key);
     const id = await ctx.db.insert("modelConfigs", {
@@ -233,6 +243,8 @@ export const activateModelConfig = mutation({
     const auth = await authorizeMutation(ctx, {
       permission: CAPABILITIES.featureFlagsManage,
     });
+    // Ressource globale à la plateforme : garde explicite (voir shared.ts).
+    await assertPlatformOrganization(ctx, auth);
     const now = Date.now();
     const target = await activateVersion(ctx, "modelConfigs", args.key, args.version);
     await auditAiops(ctx, auth, now, {

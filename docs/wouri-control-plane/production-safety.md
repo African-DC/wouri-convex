@@ -6,7 +6,8 @@
 | --- | --- | --- | --- |
 | Convex | `wouri doctor` échoue | — | Branchée |
 | Diffusion WhatsApp | Livraisons bloquées en « créées » | Drapeau | **Non branchée** |
-| Fournisseur de modèle | Traces en échec, latence | Registre : réactiver une version antérieure | Non branché |
+| **Génération de réponse** | — | — | **Non branchée** |
+| Fournisseur de modèle | Traces en échec, latence | — | Non branché |
 | Reconnaissance vocale | Erreurs `ASR_ERROR` | Drapeau par langue | Non branchée |
 | Traduction | Erreurs `TRANSLATION_ERROR` | Drapeau | Non branchée |
 | Synthèse vocale | Erreurs `TTS_PRONUNCIATION` | Drapeau | Non branchée |
@@ -27,12 +28,21 @@ Deux mécanismes, tous deux immédiats et journalisés.
 l'environnement : une bascule sur le mauvais déploiement transforme un incident
 en deux incidents.
 
-**Registres.** Réactiver une version antérieure de prompt, de politique ou de
-modèle rétablit le comportement précédent. Aucune version n'est supprimée, elles
-sont retirées : le retour arrière est toujours possible.
+**Registres.** Une seule coupure existe aujourd'hui, celle des drapeaux.
 
-Ce qu'il n'y a pas : un interrupteur général. Couper WOURI entièrement se fait au
-niveau du déploiement, pas depuis la Console.
+Les registres de prompt, de politique et de modèle sont un **inventaire
+versionné, pas un levier**. Le pipeline de réponse
+(`convex/pipeline/answer.ts`) compose ses réponses par concaténation des passages
+trouvés : il n'appelle aucun modèle de langue et ne lit aucun `template`.
+Réactiver une version antérieure **ne change donc rien au comportement**.
+
+Ce que les registres apportent réellement : chaque trace porte les versions en
+vigueur au moment de l'exécution, ce qui rendra un incident rejouable le jour où
+la génération sera branchée. Les activer et les retirer prépare ce jour, cela ne
+corrige pas un incident aujourd'hui.
+
+Ce qu'il n'y a pas : un interrupteur général, ni de levier sur la génération.
+Couper WOURI entièrement se fait au niveau du déploiement, pas depuis la Console.
 
 ## Règles de production
 

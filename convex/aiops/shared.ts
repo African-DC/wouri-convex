@@ -39,6 +39,22 @@ export const scopeOrganization = async (
   return auth.organizationId;
 };
 
+// Fail-closed guard for platform-global resources that carry no organizationId
+// (registres de prompt/politique/modèle). featureFlagsManage n'est aujourd'hui
+// portée que par adcAdmin, mais rien n'empêche un preset client de la gagner :
+// sans ce garde, cette organisation pourrait activer une version pour TOUS les
+// tenants. Le voisin flags.ts scope la même capacité ; on aligne.
+export const assertPlatformOrganization = async (
+  ctx: QueryCtx | MutationCtx,
+  auth: AuthorizationContext,
+): Promise<void> => {
+  if (await isPlatformOrganization(ctx, auth.organizationId)) return;
+  throw new WouriError(
+    ERROR_TYPES.PERMISSION,
+    "Cette opération est réservée à l'organisation plateforme.",
+  );
+};
+
 // Fail-closed ownership check for a record fetched by id.
 export const assertReadable = async (
   ctx: QueryCtx | MutationCtx,

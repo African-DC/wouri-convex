@@ -7,6 +7,10 @@ import type { AuthorizationContext } from "../authorization";
 import { requireEntitlement } from "../lib/entitlements";
 import { recordAudit } from "../lib/audit";
 import { ERROR_TYPES, WouriError } from "../lib/errors";
+import {
+  ALERT_CONSENT_PURPOSE,
+  ALERT_CONSENT_POLICY_VERSION,
+} from "../alerts/audience";
 import * as model from "./model";
 
 // DAT-04 / §15 — public write surface for the FARMERS domain. Every mutation
@@ -173,7 +177,11 @@ export const recordConsent = mutation({
   args: {
     farmerId: v.id("farmers"),
     purpose: v.string(),
-    policyVersion: v.string(),
+    // Optionnelle : pour un accord, la version en vigueur est stampée côté
+    // serveur. Faire confiance à une version fournie par le client laissait
+    // attester un consentement sous n'importe quelle version, ce qui vide la
+    // preuve de sa valeur juridique.
+    policyVersion: v.optional(v.string()),
     state: v.union(v.literal("granted"), v.literal("withdrawn")),
     captureSource: v.string(),
   },
@@ -183,11 +191,21 @@ export const recordConsent = mutation({
     });
     await requireOrgFarmer(ctx, auth.organizationId, args.farmerId);
     const now = Date.now();
+    // Autorité serveur sur la version pour le motif connu. Un retrait conserve la
+    // version sous laquelle l'accord existait ; un accord porte la version en
+    // vigueur, jamais celle que le client prétend.
+    const policyVersion =
+      args.state === "granted" && args.purpose === ALERT_CONSENT_PURPOSE
+        ? ALERT_CONSENT_POLICY_VERSION
+        : (args.policyVersion ??
+            (await model.latestConsent(ctx, args.farmerId, args.purpose))
+              ?.policyVersion ??
+            "unknown");
     const consentId = await model.addConsent(
       ctx,
       args.farmerId,
       args.purpose,
-      args.policyVersion,
+      policyVersion,
       args.state,
       args.captureSource,
       now,
@@ -200,7 +218,7 @@ export const recordConsent = mutation({
         action: "farmer.consent.record",
         resourceType: "farmerConsents",
         resourceId: consentId,
-        after: { purpose: args.purpose, state: args.state },
+        after: { purpose: args.purpose, state: args.state, policyVersion },
       },
       now,
     );

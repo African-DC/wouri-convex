@@ -18,5 +18,6 @@ export const auditTables = {
   })
     .index("by_organizationId_and_createdAt", ["organizationId", "createdAt"])
     .index("by_resourceType_and_resourceId", ["resourceType", "resourceId"])
-    .index("by_action_and_createdAt", ["action", "createdAt"]),
+    .index("by_action_and_createdAt", ["action", "createdAt"])
+    .index("by_createdAt", ["createdAt"]),
 };

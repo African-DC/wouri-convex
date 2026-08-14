@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import schema from "../schema";
 import { createFarmerForOrg, addZoneLink, addConsent } from "../farmers/model";
 import { resolveAudience, resolveTargeted } from "../alerts/model";
-import { ALERT_CONSENT_PURPOSE } from "../alerts/audience";
+import { ALERT_CONSENT_PURPOSE, CONSENT_CHECK_LIMIT } from "../alerts/audience";
 
 const modules = import.meta.glob("./../**/*.ts");
 
@@ -64,6 +64,29 @@ describe("consentement et audience d'alerte", () => {
     // Le silence n'est pas un consentement : l'absence de trace vaut refus.
     expect(audience).toHaveLength(0);
   });
+
+  // Semer 2 001 agriculteurs, chacun avec deux insertions, prend une dizaine de
+  // secondes sous convex-test : ce test de borne dépasse volontairement le
+  // délai par défaut de 5 s. Il ne tourne que dans la suite complète.
+  it(
+    "refuse une audience au-delà du plafond de vérification",
+    async () => {
+      const t = convexTest(schema, modules);
+      // Le plafond etait annonce a 20 000 alors que la verification refuse
+      // au-dela de 2 000 : la branche haute etait morte et le plafond reel dix
+      // fois plus bas que documente. Ce test fixe le seuil observable.
+      await expect(
+        t.run(async (ctx) => {
+          for (let i = 0; i < CONSENT_CHECK_LIMIT + 1; i++) {
+            const farmerId = await createFarmerForOrg(ctx, "org-a", `f${i}`, 1000);
+            await addZoneLink(ctx, "org-a", farmerId, "korhogo");
+          }
+          return resolveAudience(ctx, "org-a", RULES);
+        }),
+      ).rejects.toThrow();
+    },
+    30_000,
+  );
 
   it("reprend l'agriculteur après un nouveau consentement", async () => {
     const t = convexTest(schema, modules);
