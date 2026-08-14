@@ -5,7 +5,7 @@ la main : il serait faux au premier commit suivant. Le générateur échoue si
 une fonction publique n'est pas classée en risque, pour qu'aucune surface
 n'entre sans décision explicite.
 
-Fonctions publiques recensées : **63**. Capacités déclarées : **22**.
+Fonctions publiques recensées : **65**. Capacités déclarées : **22**.
 
 ## Classes de risque et politique d'exposition
 
@@ -39,8 +39,8 @@ Fonctions publiques recensées : **63**. Capacités déclarées : **22**.
 | `knowledge.read` | 6 | sodexamOperator, cnraOperator, clientAdmin, clientOperator, linguist |
 | `analytics.read` | 0 | sodexamOperator, cnraOperator, clientAdmin, clientOperator |
 | `linguistic.validate` | 7 | linguist |
-| `aiops.read` | 7 | aucun |
-| `aiops.replay` | 3 | aucun |
+| `aiops.read` | 8 | aucun |
+| `aiops.replay` | 4 | aucun |
 | `featureflags.manage` | 8 | aucun |
 | `audit.read` | 1 | aucun |
 
@@ -52,20 +52,22 @@ Colonne Console renseignée depuis le code du dépôt `wouri-console`.
 | --- | --- | --- | --- | --- | --- |
 | `aiops/auditread:listAuditLogs` | query | `audit.read` | READ | oui | — |
 | `aiops/flags:listFlags` | query | `featureflags.manage` | READ | oui | — |
-| `aiops/flags:setFlag` | mutation | `featureflags.manage` | SENSITIVE_WRITE | — | — |
+| `aiops/flags:setFlag` | mutation | `featureflags.manage` | SENSITIVE_WRITE | oui | — |
 | `aiops/health:health` | query | `aiops.read` | READ | — | oui |
-| `aiops/registry:activateModelConfig` | mutation | `featureflags.manage` | SENSITIVE_WRITE | — | — |
-| `aiops/registry:activatePolicyVersion` | mutation | `featureflags.manage` | SENSITIVE_WRITE | — | — |
-| `aiops/registry:activatePromptVersion` | mutation | `featureflags.manage` | SENSITIVE_WRITE | — | — |
+| `aiops/registry:activateModelConfig` | mutation | `featureflags.manage` | SENSITIVE_WRITE | oui | — |
+| `aiops/registry:activatePolicyVersion` | mutation | `featureflags.manage` | SENSITIVE_WRITE | oui | — |
+| `aiops/registry:activatePromptVersion` | mutation | `featureflags.manage` | SENSITIVE_WRITE | oui | — |
 | `aiops/registry:createModelConfig` | mutation | `featureflags.manage` | SAFE_WRITE | — | — |
 | `aiops/registry:createPolicyVersion` | mutation | `featureflags.manage` | SAFE_WRITE | — | — |
 | `aiops/registry:createPromptVersion` | mutation | `featureflags.manage` | SAFE_WRITE | — | — |
 | `aiops/registry:getActiveModelConfig` | query | `aiops.read` | READ | — | — |
 | `aiops/registry:getActivePolicy` | query | `aiops.read` | READ | — | — |
 | `aiops/registry:getActivePrompt` | query | `aiops.read` | READ | — | — |
+| `aiops/registry:listRegistryVersions` | query | `aiops.read` | READ | oui | — |
 | `aiops/replay:captureReplaySnapshot` | mutation | `aiops.replay` | SAFE_WRITE | — | — |
+| `aiops/replay:captureSnapshotFromTrace` | mutation | `aiops.replay` | SAFE_WRITE | oui | — |
 | `aiops/replay:getReplaySnapshot` | query | `aiops.replay` | READ | — | — |
-| `aiops/replay:listReplaySnapshots` | query | `aiops.replay` | READ | — | — |
+| `aiops/replay:listReplaySnapshots` | query | `aiops.replay` | READ | oui | — |
 | `aiops/traces:getTrace` | query | `aiops.read` | READ | oui | oui |
 | `aiops/traces:listErrors` | query | `aiops.read` | READ | oui | oui |
 | `aiops/traces:listTraces` | query | `aiops.read` | READ | oui | oui |
@@ -119,14 +121,10 @@ Colonne Console renseignée depuis le code du dépôt `wouri-console`.
 Exposées par le backend, atteignables depuis aucune interface. Chacune est
 soit un trou du Control Plane, soit une surface à retirer.
 
-**32** sur 63.
+**27** sur 65.
 
 | Fonction | Risque |
 | --- | --- |
-| `aiops/flags:setFlag` | SENSITIVE_WRITE |
-| `aiops/registry:activateModelConfig` | SENSITIVE_WRITE |
-| `aiops/registry:activatePolicyVersion` | SENSITIVE_WRITE |
-| `aiops/registry:activatePromptVersion` | SENSITIVE_WRITE |
 | `aiops/registry:createModelConfig` | SAFE_WRITE |
 | `aiops/registry:createPolicyVersion` | SAFE_WRITE |
 | `aiops/registry:createPromptVersion` | SAFE_WRITE |
@@ -135,7 +133,6 @@ soit un trou du Control Plane, soit une surface à retirer.
 | `aiops/registry:getActivePrompt` | READ |
 | `aiops/replay:captureReplaySnapshot` | SAFE_WRITE |
 | `aiops/replay:getReplaySnapshot` | READ |
-| `aiops/replay:listReplaySnapshots` | READ |
 | `farmers/mutations:addFarmerToGroup` | SAFE_WRITE |
 | `farmers/mutations:createFarmerGroup` | SAFE_WRITE |
 | `farmers/mutations:linkFarmerCrop` | SAFE_WRITE |

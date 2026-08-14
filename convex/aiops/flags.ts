@@ -85,9 +85,14 @@ export const setFlag = mutation({
           .eq("key", args.key),
       )
       .unique();
+    // La description n'est reecrite que si l'appelant en fournit une. Sans ce
+    // garde-fou, une simple bascule effacait la description existante, puisque
+    // patch() traite un champ optionnel absent comme une suppression : couper
+    // une fonctionnalite en urgence faisait alors perdre l'explication de ce
+    // qu'elle fait, au pire moment.
     const fields = {
       enabled: args.enabled,
-      description: args.description,
+      ...(args.description !== undefined ? { description: args.description } : {}),
       updatedByMemberId: auth.memberId,
       updatedAt: now,
     };

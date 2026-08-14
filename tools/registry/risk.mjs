@@ -139,6 +139,7 @@ export const RISQUES = {
   "aiops/registry:getActivePrompt": "READ",
   "aiops/registry:getActivePolicy": "READ",
   "aiops/registry:getActiveModelConfig": "READ",
+  "aiops/registry:listRegistryVersions": "READ",
   "aiops/registry:createPromptVersion": "SAFE_WRITE",
   "aiops/registry:createPolicyVersion": "SAFE_WRITE",
   "aiops/registry:createModelConfig": "SAFE_WRITE",
@@ -148,6 +149,7 @@ export const RISQUES = {
   "aiops/replay:listReplaySnapshots": "READ",
   "aiops/replay:getReplaySnapshot": "READ",
   "aiops/replay:captureReplaySnapshot": "SAFE_WRITE",
+  "aiops/replay:captureSnapshotFromTrace": "SAFE_WRITE",
 
   // Outils métier et pipeline
   "tools/getFarmerProfile:getFarmerProfile": "READ",

@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { authorize, authorizeMutation, CAPABILITIES } from "../authorization";
 import { assertReadable, auditAiops, clampLimit, scopeOrganization } from "./shared";
+import { ERROR_TYPES, WouriError } from "../lib/errors";
 
 // OBS-03 / §30 — freeze inputs and context so a run can be replayed in staging.
 // Platform-scoped: requires aiopsReplay.
@@ -50,6 +51,74 @@ export const captureReplaySnapshot = mutation({
       resourceId: id,
       traceId: args.traceId,
       after: { promptKey: args.promptKey, promptVersion: args.promptVersion },
+    });
+    return id;
+  },
+});
+
+// OBS-03 / §75 — capture a snapshot FROM a trace. captureReplaySnapshot requires
+// the caller to supply the input and context payloads, which an operator opening
+// a trace in the Console does not have: asking the client to invent them would
+// produce a snapshot that replays nothing. Here the server reads the trace it
+// owns and derives everything, so the operator only chooses which execution to
+// freeze.
+export const captureSnapshotFromTrace = mutation({
+  args: { traceId: v.id("executionTraces") },
+  handler: async (ctx, args) => {
+    const auth = await authorizeMutation(ctx, {
+      permission: CAPABILITIES.aiopsReplay,
+    });
+    const trace = await ctx.db.get(args.traceId);
+    if (!trace) {
+      throw new WouriError(ERROR_TYPES.INTERNAL, "Unknown execution trace");
+    }
+    await assertReadable(ctx, auth, trace.organizationId);
+
+    const steps = await ctx.db
+      .query("executionTraceSteps")
+      .withIndex("by_traceId_and_ordinal", (q) => q.eq("traceId", trace._id))
+      .order("asc")
+      .take(200);
+
+    const now = Date.now();
+    const id = await ctx.db.insert("replaySnapshots", {
+      organizationId: trace.organizationId,
+      traceId: trace._id,
+      conversationContextId: trace.conversationContextId,
+      // The trace does not store the farmer's utterance; freezing the routing
+      // conditions is what makes a later comparison meaningful, and it keeps the
+      // snapshot free of message content.
+      inputPayload: JSON.stringify({
+        intent: trace.intent ?? null,
+        language: trace.language ?? null,
+        channel: trace.channel ?? null,
+        originAlertId: trace.originAlertId ?? null,
+      }),
+      contextPayload: JSON.stringify({
+        resultStatus: trace.resultStatus,
+        errorType: trace.errorType ?? null,
+        latencyMs: trace.latencyMs ?? null,
+        steps: steps.map((step) => ({
+          ordinal: step.ordinal,
+          kind: step.kind,
+          name: step.name,
+          status: step.status,
+        })),
+      }),
+      promptKey: trace.promptKey,
+      promptVersion: trace.promptVersion,
+      policyKey: trace.policyKey,
+      policyVersion: trace.policyVersion,
+      modelConfigKey: trace.modelConfigKey,
+      modelConfigVersion: trace.modelConfigVersion,
+      capturedAt: now,
+    });
+    await auditAiops(ctx, auth, now, {
+      action: "aiops.replay.capture",
+      resourceType: "replaySnapshots",
+      resourceId: id,
+      traceId: trace._id,
+      after: { promptKey: trace.promptKey, promptVersion: trace.promptVersion },
     });
     return id;
   },

@@ -7,6 +7,7 @@ import {
   recordError,
 } from "./trace";
 import { ALL_ERROR_TYPES, type ErrorType } from "./errors";
+import { resolveRegistryStamp } from "./traceRegistry";
 
 // Internal mutation bridges so actions and tools can persist Execution Trace
 // records (actions have no ctx.db). §28 / OBS-01.
@@ -31,7 +32,12 @@ export const openTrace = internalMutation({
     modelConfigKey: v.optional(v.string()),
     modelConfigVersion: v.optional(v.number()),
   },
-  handler: async (ctx, args) => startTrace(ctx, args, Date.now()),
+  handler: async (ctx, args) =>
+    startTrace(
+      ctx,
+      { ...args, ...(await resolveRegistryStamp(ctx, args)) },
+      Date.now(),
+    ),
 });
 
 export const addTraceStep = internalMutation({

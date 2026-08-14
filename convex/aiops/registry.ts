@@ -252,3 +252,47 @@ export const getActiveModelConfig = query({
     return activeVersion(ctx, "modelConfigs", args.key);
   },
 });
+
+// --- Registry listing ------------------------------------------------------
+
+// §37-38 — the registries only exposed their ACTIVE version, so the history was
+// invisible: no way to see what a key had been, and no way to choose a version
+// to roll back to. Activation without a visible history is a one-way door.
+// Returns the shared fields only; a template or a policy definition can be long
+// and is fetched per version on demand.
+const REGISTRY_LIST_LIMIT = 200;
+
+const registryValidator = v.union(
+  v.literal("prompts"),
+  v.literal("policies"),
+  v.literal("models"),
+);
+
+const TABLE_FOR: Record<"prompts" | "policies" | "models", RegistryTable> = {
+  prompts: "promptVersions",
+  policies: "policyVersions",
+  models: "modelConfigs",
+};
+
+export const listRegistryVersions = query({
+  args: { registry: registryValidator, key: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    await authorize(ctx, { permission: CAPABILITIES.aiopsRead });
+    const literal = asVersionTable(TABLE_FOR[args.registry]);
+    const rows = args.key
+      ? await ctx.db
+          .query(literal)
+          .withIndex("by_key_and_version", (q) => q.eq("key", args.key!))
+          .order("desc")
+          .take(REGISTRY_LIST_LIMIT)
+      : await ctx.db.query(literal).order("desc").take(REGISTRY_LIST_LIMIT);
+    return rows.map((row) => ({
+      id: row._id,
+      key: row.key,
+      version: row.version,
+      status: row.status,
+      createdAt: row.createdAt,
+      createdByMemberId: row.createdByMemberId ?? null,
+    }));
+  },
+});
