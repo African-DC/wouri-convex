@@ -129,8 +129,25 @@ Le code Convex ne référence, à ce jour, que ces variables (vérifié dans
 `convex/`) :
 
 - `SITE_URL` : origine de confiance de Better Auth (`convex/auth.ts`, via
-  `baseURL`/`trustedOrigins`). En dev, l'email/mot de passe n'est activé que si
-  `SITE_URL` vaut `http://localhost:3000`.
+  `baseURL`/`trustedOrigins`).
+- `AUTH_EMAIL_PASSWORD_ENABLED` : active la connexion par email et mot de passe.
+  À poser explicitement (`true` / `false`). Sans elle, la méthode n'est active
+  que si `SITE_URL` vaut `http://localhost:3000` : c'est un défaut fermé, pas
+  une configuration. Aucune autre méthode n'étant branchée, la mettre à `false`
+  ferme la Console à tout le monde.
+- `AUTH_SELF_SIGNUP_ENABLED` : autorise la création de compte depuis la page de
+  connexion. **Posée à `false` sur staging** : la Console est un espace
+  institutionnel, un compte y est créé par rattachement à une organisation. Le
+  défaut est fermé hors développement local. Pour créer un compte de
+  démonstration supplémentaire, l'ouvrir le temps de l'opération puis la
+  refermer :
+
+  ```powershell
+  pnpm exec convex env set --prod AUTH_SELF_SIGNUP_ENABLED true
+  # créer le compte, puis le rattacher via internal.testing.linkDemoAccount
+  pnpm exec convex env set --prod AUTH_SELF_SIGNUP_ENABLED false
+  ```
+
 - `BETTER_AUTH_SECRET` : secret Better Auth. Configuré par déploiement, jamais
   commité.
 - `WOURI_ENV` : garde-fou du seed. Le seed refuse de s'exécuter quand

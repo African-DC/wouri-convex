@@ -34,6 +34,16 @@ const emailPasswordEnabled = () => {
   return configuredOrigin() === localOrigin;
 };
 
+// La Console est un espace institutionnel : un compte y est cree par
+// rattachement a une organisation, pas par auto-inscription. L'ouverture reste
+// possible pour amorcer un environnement (comptes de demonstration), mais elle
+// doit etre demandee explicitement, et le defaut est ferme.
+const selfSignUpEnabled = () => {
+  const flag = runtimeEnvironment.process?.env?.AUTH_SELF_SIGNUP_ENABLED;
+  if (flag !== undefined) return flag === "true" || flag === "1";
+  return configuredOrigin() === localOrigin;
+};
+
 const authFunctions: AuthFunctions = internal.auth;
 
 export const authComponent = createClient<DataModel, typeof authSchema>(
@@ -64,6 +74,7 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
     database: authComponent.adapter(ctx),
     emailAndPassword: {
       enabled: emailPasswordEnabled(),
+      disableSignUp: !selfSignUpEnabled(),
       minPasswordLength: 12,
       requireEmailVerification: false,
     },
