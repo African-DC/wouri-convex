@@ -100,7 +100,7 @@ Colonne Console renseignée depuis le code du dépôt `wouri-console`.
 | `knowledge/queries:getProvenance` | query | `knowledge.read` | READ | — | oui |
 | `knowledge/queries:listKnowledgeSources` | query | `knowledge.read` | READ | oui | oui |
 | `language/fastPath:listApprovedPhrases` | query | `knowledge.read` | READ | oui | oui |
-| `language/fastPath:promoteToApprovedPhrase` | mutation | `linguistic.validate` | SENSITIVE_WRITE | — | — |
+| `language/fastPath:promoteToApprovedPhrase` | mutation | `linguistic.validate` | SENSITIVE_WRITE | oui | — |
 | `language/feedback:listFeedback` | query | `linguistic.validate` | READ | oui | — |
 | `language/feedback:setFeedbackStatus` | mutation | `linguistic.validate` | SAFE_WRITE | oui | — |
 | `language/feedback:submitFeedback` | mutation | `linguistic.validate` | SAFE_WRITE | oui | — |
@@ -122,7 +122,7 @@ Colonne Console renseignée depuis le code du dépôt `wouri-console`.
 Exposées par le backend, atteignables depuis aucune interface. Chacune est
 soit un trou du Control Plane, soit une surface à retirer.
 
-**26** sur 66.
+**25** sur 66.
 
 | Fonction | Risque |
 | --- | --- |
@@ -147,7 +147,6 @@ soit un trou du Control Plane, soit une surface à retirer.
 | `knowledge/ingest:ingestDocument` | SENSITIVE_WRITE |
 | `knowledge/mutations:createKnowledgeSource` | SAFE_WRITE |
 | `knowledge/mutations:createKnowledgeSourceVersion` | SENSITIVE_WRITE |
-| `language/fastPath:promoteToApprovedPhrase` | SENSITIVE_WRITE |
 | `organizations/provisioning:activateOrganization` | SENSITIVE_WRITE |
 | `organizations/queries:getMyOrganization` | READ |
 | `pipeline/answer:answerFarmerQuestion` | SAFE_WRITE |

@@ -30,6 +30,7 @@ import type * as conversations_internal from "../conversations/internal.js";
 import type * as conversations_model from "../conversations/model.js";
 import type * as conversations_mutations from "../conversations/mutations.js";
 import type * as conversations_queries from "../conversations/queries.js";
+import type * as corpus_export from "../corpus/export.js";
 import type * as diagnostics_readonly from "../diagnostics/readonly.js";
 import type * as farmers_model from "../farmers/model.js";
 import type * as farmers_mutations from "../farmers/mutations.js";
@@ -114,6 +115,7 @@ declare const fullApi: ApiFromModules<{
   "conversations/model": typeof conversations_model;
   "conversations/mutations": typeof conversations_mutations;
   "conversations/queries": typeof conversations_queries;
+  "corpus/export": typeof corpus_export;
   "diagnostics/readonly": typeof diagnostics_readonly;
   "farmers/model": typeof farmers_model;
   "farmers/mutations": typeof farmers_mutations;
