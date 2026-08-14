@@ -38,34 +38,48 @@ const guardNotProduction = () => {
   }
 };
 
-const DEMO_ORG = "demo-coop-a";
-const OTHER_ORG = "demo-coop-b";
+// Organisations par defaut du scenario. Surchargeables pour rejouer la preuve
+// sur des organisations reelles creees via Better Auth.
+const DEMO_ORG_PAR_DEFAUT = "demo-coop-a";
+const OTHER_ORG_PAR_DEFAUT = "demo-coop-b";
 const ALERT_MESSAGE = "Forte pluie prevue demain sur Abidjan Nord.";
 const FARMER_REPLY = "Et pour mon cacao ?";
 
 type Evidence = { gate: string; claim: string; proof: unknown; ok: boolean };
 
+// Prend l'agriculteur de fixture quand l'organisation est celle du seed, sinon
+// le premier agriculteur actif de l'organisation. Le scenario fonctionne donc
+// aussi bien sur les organisations synthetiques que sur une organisation reelle
+// creee via Better Auth.
 const requireDemoFarmer = async (ctx: MutationCtx, organizationId: string) => {
   const fixture = FARMERS.find((f) => f.organizationId === organizationId);
-  if (!fixture) throw new Error(`Aucune fixture d'agriculteur pour ${organizationId}`);
-  const farmer = await getFarmerByExternalHash(
-    ctx,
-    organizationId,
-    fixture.externalIdentityHash,
-  );
+  const farmer = fixture
+    ? await getFarmerByExternalHash(ctx, organizationId, fixture.externalIdentityHash)
+    : await ctx.db
+        .query("farmers")
+        .withIndex("by_organizationId_and_status", (q) =>
+          q.eq("organizationId", organizationId).eq("status", "active"),
+        )
+        .first();
   if (!farmer) {
     throw new Error(
-      `Agriculteur de demonstration absent pour ${organizationId}. ` +
-        "Executer d'abord testing/seed:seedStaging.",
+      `Aucun agriculteur actif pour ${organizationId}. Executer d'abord ` +
+        "testing/seed:seedStaging ou testing/seedForOrganization.",
     );
   }
   return farmer;
 };
 
 export const runScenario = internalMutation({
-  args: { dryRun: v.optional(v.boolean()) },
+  args: {
+    dryRun: v.optional(v.boolean()),
+    organizationId: v.optional(v.string()),
+    otherOrganizationId: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
     guardNotProduction();
+    const DEMO_ORG = args.organizationId ?? DEMO_ORG_PAR_DEFAUT;
+    const OTHER_ORG = args.otherOrganizationId ?? OTHER_ORG_PAR_DEFAUT;
     const evidence: Evidence[] = [];
     const now = Date.now();
 
