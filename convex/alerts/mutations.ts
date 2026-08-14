@@ -144,6 +144,43 @@ export const publishAlert = mutation({
   },
 });
 
+// ALT-01 / §21 — cancel an alert. The schema has always had a "canceled" state
+// that no mutation could reach: a mistaken draft stayed in the list forever, and
+// an ongoing diffusion could not be stopped. Deliveries already created are left
+// as they are — what has left the platform cannot be recalled, and rewriting
+// their state would claim otherwise.
+export const cancelAlert = mutation({
+  args: { alertId: v.id("alerts"), reason: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const auth = await authorizeMutation(ctx, { permission: CAPABILITIES.alertsPublish });
+    const alert = await loadAlertForOrg(ctx, auth.organizationId, args.alertId);
+    if (!alert) throw new ConvexError("Unauthorized");
+    if (alert.status === "canceled" || alert.status === "completed") {
+      throw new WouriError(
+        ERROR_TYPES.DELIVERY,
+        "This alert is already finished and cannot be canceled",
+      );
+    }
+    const now = Date.now();
+    await ctx.db.patch(alert._id, { status: "canceled" });
+    await recordAudit(
+      ctx,
+      {
+        organizationId: auth.organizationId,
+        actorSubject: await actorSubjectFor(ctx, auth),
+        actorMemberId: auth.memberId,
+        action: "alert.cancel",
+        resourceType: "alert",
+        resourceId: alert._id,
+        before: { status: alert.status },
+        after: { status: "canceled", ...(args.reason ? { reason: args.reason } : {}) },
+      },
+      now,
+    );
+    return { alertId: alert._id, previousStatus: alert.status };
+  },
+});
+
 // Entry point for future WhatsApp delivery callbacks: match by providerMessageId
 // and advance the delivery state (attemptCount bumps on failure). Internal only.
 export const recordDeliveryCallback = internalMutation({

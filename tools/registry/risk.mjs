@@ -97,6 +97,9 @@ export const RISQUES = {
   "alerts/mutations:addAlertAudienceRule": "SAFE_WRITE",
   // Sort de la plateforme vers des téléphones réels : irréversible.
   "alerts/mutations:publishAlert": "SENSITIVE_WRITE",
+  // Interrompt une diffusion en cours : effet visible, et le retour arrière
+  // n'est que partiel puisque les livraisons déjà parties restent parties.
+  "alerts/mutations:cancelAlert": "SENSITIVE_WRITE",
 
   // Conversations
   "conversations/queries:listConversations": "READ",

@@ -5,7 +5,7 @@ la main : il serait faux au premier commit suivant. Le générateur échoue si
 une fonction publique n'est pas classée en risque, pour qu'aucune surface
 n'entre sans décision explicite.
 
-Fonctions publiques recensées : **62**. Capacités déclarées : **22**.
+Fonctions publiques recensées : **63**. Capacités déclarées : **22**.
 
 ## Classes de risque et politique d'exposition
 
@@ -30,7 +30,7 @@ Fonctions publiques recensées : **62**. Capacités déclarées : **22**.
 | `farmers.write` | 6 | clientAdmin, clientOperator |
 | `consents.write` | 2 | clientAdmin |
 | `alerts.create` | 3 | sodexamOperator, cnraOperator, clientAdmin |
-| `alerts.publish` | 1 | sodexamOperator, cnraOperator, clientAdmin |
+| `alerts.publish` | 2 | sodexamOperator, cnraOperator, clientAdmin |
 | `alerts.read` | 5 | sodexamOperator, cnraOperator, clientAdmin, clientOperator |
 | `weather.publish` | 1 | sodexamOperator |
 | `sources.publish` | 2 | sodexamOperator, cnraOperator |
@@ -70,24 +70,25 @@ Colonne Console renseignée depuis le code du dépôt `wouri-console`.
 | `aiops/traces:listErrors` | query | `aiops.read` | READ | oui | oui |
 | `aiops/traces:listTraces` | query | `aiops.read` | READ | oui | oui |
 | `alerts/mutations:addAlertAudienceRule` | mutation | `alerts.create` | SAFE_WRITE | oui | — |
+| `alerts/mutations:cancelAlert` | mutation | `alerts.publish` | SENSITIVE_WRITE | oui | — |
 | `alerts/mutations:createAlert` | mutation | `alerts.create` | SAFE_WRITE | oui | — |
 | `alerts/mutations:publishAlert` | mutation | `alerts.publish` | SENSITIVE_WRITE | oui | — |
 | `alerts/queries:getAlert` | query | `alerts.read` | READ | oui | — |
 | `alerts/queries:listAlerts` | query | `alerts.read` | READ | oui | — |
 | `alerts/queries:previewAudience` | query | `alerts.create` | READ | oui | — |
 | `conversations/queries:getConversationContext` | query | `alerts.read` | READ | oui | oui |
-| `conversations/queries:listConversationMessages` | query | `alerts.read` | READ | — | — |
+| `conversations/queries:listConversationMessages` | query | `alerts.read` | READ | oui | — |
 | `conversations/queries:listConversations` | query | `alerts.read` | READ | oui | — |
 | `farmers/mutations:addFarmerToGroup` | mutation | `farmers.write` | SAFE_WRITE | — | — |
 | `farmers/mutations:createFarmerGroup` | mutation | `farmers.write` | SAFE_WRITE | — | — |
 | `farmers/mutations:linkFarmerCrop` | mutation | `farmers.write` | SAFE_WRITE | — | — |
 | `farmers/mutations:linkFarmerZone` | mutation | `farmers.write` | SAFE_WRITE | — | — |
-| `farmers/mutations:recordConsent` | mutation | `consents.write` | SENSITIVE_WRITE | — | — |
+| `farmers/mutations:recordConsent` | mutation | `consents.write` | SENSITIVE_WRITE | oui | — |
 | `farmers/mutations:registerFarmer` | mutation | `farmers.write` | SAFE_WRITE | — | — |
 | `farmers/mutations:upsertFarmerProfile` | mutation | `farmers.write` | SAFE_WRITE | — | — |
-| `farmers/mutations:withdrawConsent` | mutation | `consents.write` | SENSITIVE_WRITE | — | — |
+| `farmers/mutations:withdrawConsent` | mutation | `consents.write` | SENSITIVE_WRITE | oui | — |
 | `farmers/queries:getFarmer` | query | `farmers.read` | READ | — | — |
-| `farmers/queries:getFarmerProfile` | query | `farmers.read` | READ | — | — |
+| `farmers/queries:getFarmerProfile` | query | `farmers.read` | READ | oui | — |
 | `farmers/queries:listFarmerGroups` | query | `farmers.read` | READ | — | — |
 | `farmers/queries:listFarmers` | query | `farmers.read` | READ | oui | — |
 | `knowledge/ingest:ingestDocument` | action | `knowledge.ingest` | SENSITIVE_WRITE | — | — |
@@ -118,7 +119,7 @@ Colonne Console renseignée depuis le code du dépôt `wouri-console`.
 Exposées par le backend, atteignables depuis aucune interface. Chacune est
 soit un trou du Control Plane, soit une surface à retirer.
 
-**36** sur 62.
+**32** sur 63.
 
 | Fonction | Risque |
 | --- | --- |
@@ -135,17 +136,13 @@ soit un trou du Control Plane, soit une surface à retirer.
 | `aiops/replay:captureReplaySnapshot` | SAFE_WRITE |
 | `aiops/replay:getReplaySnapshot` | READ |
 | `aiops/replay:listReplaySnapshots` | READ |
-| `conversations/queries:listConversationMessages` | READ |
 | `farmers/mutations:addFarmerToGroup` | SAFE_WRITE |
 | `farmers/mutations:createFarmerGroup` | SAFE_WRITE |
 | `farmers/mutations:linkFarmerCrop` | SAFE_WRITE |
 | `farmers/mutations:linkFarmerZone` | SAFE_WRITE |
-| `farmers/mutations:recordConsent` | SENSITIVE_WRITE |
 | `farmers/mutations:registerFarmer` | SAFE_WRITE |
 | `farmers/mutations:upsertFarmerProfile` | SAFE_WRITE |
-| `farmers/mutations:withdrawConsent` | SENSITIVE_WRITE |
 | `farmers/queries:getFarmer` | READ |
-| `farmers/queries:getFarmerProfile` | READ |
 | `farmers/queries:listFarmerGroups` | READ |
 | `knowledge/ingest:ingestDocument` | SENSITIVE_WRITE |
 | `knowledge/mutations:createKnowledgeSource` | SAFE_WRITE |
