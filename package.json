@@ -13,7 +13,9 @@
     "convex:test:permissions": "vitest run --config vitest.config.ts convex/tenancy convex/authz",
     "convex:test:alerts": "vitest run --config vitest.config.ts convex/alerts",
     "convex:test:knowledge": "vitest run --config vitest.config.ts convex/knowledge convex/rag convex/weather",
-    "typecheck": "tsc --noEmit -p convex/tsconfig.json"
+    "typecheck": "tsc --noEmit -p convex/tsconfig.json",
+    "wouri": "node tools/cli/wouri.mjs",
+    "wouri:mcp": "node tools/mcp/server.mjs"
   },
   "dependencies": {
     "@ai-sdk/provider": "3.0.3",
