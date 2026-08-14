@@ -53,7 +53,6 @@ const hasRequiredScope = (
 
 const hasActiveRelationship = (
   snapshot: AuthorizationSnapshot,
-  requirement: AuthorizationRequirement,
   subject: string,
   now?: number,
 ) => {
@@ -78,7 +77,7 @@ export const evaluateAuthorization = (
   subject: string,
   now?: number,
 ): AuthorizationContext | null => {
-  if (!hasActiveRelationship(snapshot, requirement, subject, now)) return null;
+  if (!hasActiveRelationship(snapshot, subject, now)) return null;
   const { member, policy } = snapshot;
   if (!member || !policy) return null;
   if (!policy.permissions.includes(requirement.permission)) return null;

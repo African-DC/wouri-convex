@@ -72,6 +72,7 @@ import type * as testing_fixtures from "../testing/fixtures.js";
 import type * as testing_linkDemoAccount from "../testing/linkDemoAccount.js";
 import type * as testing_orgHelpers from "../testing/orgHelpers.js";
 import type * as testing_seed from "../testing/seed.js";
+import type * as testing_seedForOrganization from "../testing/seedForOrganization.js";
 import type * as tools_getFarmerProfile from "../tools/getFarmerProfile.js";
 import type * as tools_getWeather from "../tools/getWeather.js";
 import type * as tools_searchKnowledge from "../tools/searchKnowledge.js";
@@ -151,6 +152,7 @@ declare const fullApi: ApiFromModules<{
   "testing/linkDemoAccount": typeof testing_linkDemoAccount;
   "testing/orgHelpers": typeof testing_orgHelpers;
   "testing/seed": typeof testing_seed;
+  "testing/seedForOrganization": typeof testing_seedForOrganization;
   "tools/getFarmerProfile": typeof tools_getFarmerProfile;
   "tools/getWeather": typeof tools_getWeather;
   "tools/searchKnowledge": typeof tools_searchKnowledge;
