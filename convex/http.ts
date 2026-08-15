@@ -215,6 +215,34 @@ http.route({
   }),
 });
 
+// Le serveur WhatsApp enregistre un agriculteur par sa référence de contact (il
+// calcule la contactRef = HMAC du numéro, Convex ne voit jamais le numéro). Même
+// clé que le callback : c'est le même serveur. Idempotent.
+http.route({
+  path: "/whatsapp/farmer",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!cleValide(request, "X-Callback-Key", "WHATSAPP_CALLBACK_KEY")) {
+      return refus("unauthorized");
+    }
+    let corps: unknown;
+    try {
+      corps = await request.json();
+    } catch {
+      return refus("invalid_json", 400);
+    }
+    const f = corps as Record<string, unknown>;
+    if (typeof f.organizationId !== "string" || typeof f.contactRef !== "string") {
+      return refus("organizationId and contactRef required", 400);
+    }
+    const resultat = await ctx.runMutation(
+      internal.integration.farmers.registerFarmerByContact,
+      { organizationId: f.organizationId, contactRef: f.contactRef },
+    );
+    return json(resultat);
+  }),
+});
+
 // Chantier 3 — opt-out. Le serveur WhatsApp signale un STOP entrant. On retire le
 // consentement à la diffusion pour ce contact. Même clé que le callback : c'est
 // le même serveur WhatsApp qui rapporte un événement entrant.

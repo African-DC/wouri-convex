@@ -159,6 +159,8 @@ export const RISQUES = {
   "integration/dispatch:markDispatched": "SENSITIVE_WRITE",
   // Opt-out : retrait de consentement déclenché par un STOP entrant.
   "integration/optout:recordOptOut": "SENSITIVE_WRITE",
+  // Enregistrement d'un agriculteur par le serveur WhatsApp (upsert par contactRef).
+  "integration/farmers:registerFarmerByContact": "SAFE_WRITE",
   // Façade publique de traduction : lecture du corpus validé, aucun effet.
   "public/translate:lookupTranslation": "READ",
   // Outils métier et pipeline
