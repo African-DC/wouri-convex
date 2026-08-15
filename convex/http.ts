@@ -208,4 +208,70 @@ http.route({
   }),
 });
 
+// Chantier 4 — façade publique de traduction, servie depuis le corpus validé.
+//
+// Publique par conception : c'est la démo du site. Aucune clé, car le corpus
+// approuvé n'est pas secret (il est fait pour être servi aux agriculteurs). On
+// borne quand même l'entrée et on autorise CORS pour un appel navigateur direct
+// ou via la route serveur du site. Aucune donnée personnelle n'entre ni ne sort.
+const enTetesCors = (request: Request) => ({
+  "Access-Control-Allow-Origin": request.headers.get("Origin") ?? "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Max-Age": "86400",
+});
+
+const LONGUEUR_MAX_TRADUCTION = 2000;
+
+http.route({
+  path: "/public/translate",
+  method: "OPTIONS",
+  handler: httpAction(async (_ctx, request) =>
+    new Response(null, { status: 204, headers: enTetesCors(request) }),
+  ),
+});
+
+http.route({
+  path: "/public/translate",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const cors = enTetesCors(request);
+    let corps: unknown;
+    try {
+      corps = await request.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "invalid_json" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...cors },
+      });
+    }
+    const t = corps as Record<string, unknown>;
+    if (
+      typeof t.source !== "string" ||
+      typeof t.target !== "string" ||
+      typeof t.text !== "string"
+    ) {
+      return new Response(
+        JSON.stringify({ error: "source, target and text required" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...cors } },
+      );
+    }
+    if (t.text.length > LONGUEUR_MAX_TRADUCTION) {
+      return new Response(JSON.stringify({ error: "text too long" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...cors },
+      });
+    }
+    const resultat = await ctx.runQuery(internal.public.translate.lookupTranslation, {
+      source: t.source,
+      target: t.target,
+      text: t.text,
+    });
+    return new Response(JSON.stringify(resultat), {
+      status: 200,
+      headers: { "Content-Type": "application/json", ...cors },
+    });
+  }),
+});
+
 export default http;

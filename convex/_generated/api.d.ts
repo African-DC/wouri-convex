@@ -57,6 +57,7 @@ import type * as lib_traceWrite from "../lib/traceWrite.js";
 import type * as organizations_provisioning from "../organizations/provisioning.js";
 import type * as organizations_queries from "../organizations/queries.js";
 import type * as pipeline_answer from "../pipeline/answer.js";
+import type * as public_translate from "../public/translate.js";
 import type * as rag_embeddingModel from "../rag/embeddingModel.js";
 import type * as rag_index from "../rag/index.js";
 import type * as schema_alerts from "../schema/alerts.js";
@@ -144,6 +145,7 @@ declare const fullApi: ApiFromModules<{
   "organizations/provisioning": typeof organizations_provisioning;
   "organizations/queries": typeof organizations_queries;
   "pipeline/answer": typeof pipeline_answer;
+  "public/translate": typeof public_translate;
   "rag/embeddingModel": typeof rag_embeddingModel;
   "rag/index": typeof rag_index;
   "schema/alerts": typeof schema_alerts;

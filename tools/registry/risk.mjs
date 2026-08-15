@@ -157,6 +157,8 @@ export const RISQUES = {
   "integration/ingest:recordEngineEvent": "SAFE_WRITE",
   "integration/dispatch:pendingDeliveries": "READ",
   "integration/dispatch:markDispatched": "SENSITIVE_WRITE",
+  // Façade publique de traduction : lecture du corpus validé, aucun effet.
+  "public/translate:lookupTranslation": "READ",
   // Outils métier et pipeline
   "tools/getFarmerProfile:getFarmerProfile": "READ",
   "tools/getWeather:getWeather": "READ",
