@@ -157,6 +157,8 @@ export const RISQUES = {
   "integration/ingest:recordEngineEvent": "SAFE_WRITE",
   "integration/dispatch:pendingDeliveries": "READ",
   "integration/dispatch:markDispatched": "SENSITIVE_WRITE",
+  // Opt-out : retrait de consentement déclenché par un STOP entrant.
+  "integration/optout:recordOptOut": "SENSITIVE_WRITE",
   // Façade publique de traduction : lecture du corpus validé, aucun effet.
   "public/translate:lookupTranslation": "READ",
   // Outils métier et pipeline

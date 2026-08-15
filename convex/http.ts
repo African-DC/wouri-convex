@@ -208,6 +208,34 @@ http.route({
   }),
 });
 
+// Chantier 3 — opt-out. Le serveur WhatsApp signale un STOP entrant. On retire le
+// consentement à la diffusion pour ce contact. Même clé que le callback : c'est
+// le même serveur WhatsApp qui rapporte un événement entrant.
+http.route({
+  path: "/whatsapp/optout",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!cleValide(request, "X-Callback-Key", "WHATSAPP_CALLBACK_KEY")) {
+      return refus("unauthorized");
+    }
+    let corps: unknown;
+    try {
+      corps = await request.json();
+    } catch {
+      return refus("invalid_json", 400);
+    }
+    const o = corps as Record<string, unknown>;
+    if (typeof o.organizationId !== "string" || typeof o.contactRef !== "string") {
+      return refus("organizationId and contactRef required", 400);
+    }
+    const resultat = await ctx.runMutation(internal.integration.optout.recordOptOut, {
+      organizationId: o.organizationId,
+      contactRef: o.contactRef,
+    });
+    return json(resultat);
+  }),
+});
+
 // Chantier 4 — façade publique de traduction, servie depuis le corpus validé.
 //
 // Publique par conception : c'est la démo du site. Aucune clé, car le corpus
