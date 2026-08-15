@@ -201,8 +201,15 @@ http.route({
       internal.integration.dispatch.markDispatched,
       { deliveryId: d.deliveryId, providerMessageId: d.providerMessageId },
     );
-    if (!resultat.updated && resultat.reason === "invalid_id") {
-      return refus("invalid deliveryId", 400);
+    // Identifiant mal formé OU introuvable : dans les deux cas la référence ne
+    // désigne aucune livraison, on le signale par un 400 plutôt que par un 200
+    // silencieux, sinon le serveur croit avoir rattaché un providerMessageId qui
+    // n'ira nulle part.
+    if (
+      !resultat.updated &&
+      (resultat.reason === "invalid_id" || resultat.reason === "unknown_delivery")
+    ) {
+      return refus(`delivery ${resultat.reason}`, 400);
     }
     return json(resultat);
   }),
@@ -232,6 +239,16 @@ http.route({
       organizationId: o.organizationId,
       contactRef: o.contactRef,
     });
+    // Un contact introuvable veut dire que le retrait de consentement n'a PAS eu
+    // lieu : c'est un droit légal, on ne le déguise pas en 200. Le serveur doit
+    // voir l'échec pour le rejouer avec le bon organizationId ou la bonne
+    // référence. already_withdrawn reste un succès (idempotence).
+    if (!resultat.applied && resultat.reason === "unknown_contact") {
+      return new Response(JSON.stringify(resultat), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
     return json(resultat);
   }),
 });
@@ -286,6 +303,14 @@ http.route({
     }
     if (t.text.length > LONGUEUR_MAX_TRADUCTION) {
       return new Response(JSON.stringify({ error: "text too long" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...cors },
+      });
+    }
+    // Traduire une langue vers elle-même renverrait un écho du texte approuvé :
+    // pas une invention, mais une réponse trompeuse. On la refuse franchement.
+    if (t.source === t.target) {
+      return new Response(JSON.stringify({ error: "source and target must differ" }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...cors },
       });

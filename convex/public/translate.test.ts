@@ -91,4 +91,14 @@ describe("façade publique de traduction", () => {
     const res = await t.run((ctx) => chercherTraduction(ctx, "fr", "dyu", "   "));
     expect(res).toEqual({ match: false, raison: "entree_vide" });
   });
+
+  it("distingue un corpus vide d'un hors-corpus", async () => {
+    const t = convexTest(schema, modules);
+    // Aucune entrée préparée : le corpus est vide, ce n'est pas un « hors corpus »
+    // mais une panne de configuration, signalée comme telle.
+    const res = await t.run((ctx) =>
+      chercherTraduction(ctx, "fr", "dyu", "une phrase quelconque"),
+    );
+    expect(res).toEqual({ match: false, raison: "corpus_vide" });
+  });
 });

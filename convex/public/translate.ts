@@ -45,7 +45,10 @@ export type Traduction =
       intent: string;
       cultures: string[];
     }
-  | { match: false; raison: "hors_corpus" | "langue_non_couverte" | "entree_vide" };
+  | {
+      match: false;
+      raison: "hors_corpus" | "langue_non_couverte" | "entree_vide" | "corpus_vide";
+    };
 
 /**
  * Cœur isolé de la couche Convex, testable directement : convex-test ne résout
@@ -67,13 +70,25 @@ export const chercherTraduction = async (
   // construireExport : on relit la même source que le moteur, sans dupliquer la
   // logique d'appariement.
   const corpus = await construireExport(ctx);
+
+  // Un corpus vide est une panne de configuration (migration non jouée, mauvais
+  // déploiement), pas un « hors corpus ». On la rend visible côté serveur plutôt
+  // que de la déguiser en fonctionnement normal pour tout le monde.
+  if (corpus.entries.length === 0) {
+    console.error("[public/translate] corpus vide : rien à servir, configuration ?");
+    return { match: false, raison: "corpus_vide" };
+  }
+
   for (const entree of corpus.entries) {
     const cote = langueSource === "fr" ? entree.reponse_fr : entree.reponse_bambara;
     if (!cote) continue;
     if (normaliserPourComparaison(cote) !== recherche) continue;
 
     const cible = langueCible === "fr" ? entree.reponse_fr : entree.reponse_bambara;
-    if (!cible) return { match: false, raison: "hors_corpus" };
+    // Cible manquante sur CETTE entrée : on continue de chercher une autre entrée
+    // qui partagerait la même source normalisée et porterait bien la cible.
+    // Renvoyer « hors corpus » ici masquerait une paire valide plus loin.
+    if (!cible) continue;
     return {
       match: true,
       source: "corpus_valide",

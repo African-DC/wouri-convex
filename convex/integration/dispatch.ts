@@ -30,7 +30,16 @@ export const selectPending = async (ctx: QueryCtx, limite: number) => {
   for (const livraison of livraisons) {
     const alerte = await ctx.db.get(livraison.alertId);
     const agriculteur = await ctx.db.get(livraison.farmerId);
-    if (!alerte || !agriculteur) continue;
+    if (!alerte || !agriculteur) {
+      // Livraison orpheline (alerte ou agriculteur supprimé) : elle resterait
+      // « created » et, étant parmi les plus anciennes, occuperait un slot du lot
+      // à chaque tour au détriment de livraisons valides. On la signale au moins,
+      // faute de pouvoir la marquer « failed » depuis une lecture.
+      console.warn(
+        `[dispatch] livraison orpheline ignorée deliveryId=${livraison._id} (alerte/agriculteur manquant)`,
+      );
+      continue;
+    }
     sorties.push({
       deliveryId: livraison._id,
       contactRef: agriculteur.externalIdentityHash,

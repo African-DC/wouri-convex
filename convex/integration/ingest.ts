@@ -20,9 +20,12 @@ const statutValidator = v.union(
 
 const errorTypeValide = (valeur: string | undefined): ErrorType | undefined => {
   if (!valeur) return undefined;
-  return (ALL_ERROR_TYPES as string[]).includes(valeur)
-    ? (valeur as ErrorType)
-    : undefined;
+  if ((ALL_ERROR_TYPES as string[]).includes(valeur)) return valeur as ErrorType;
+  // Le moteur a émis un code d'erreur qu'on ne connaît pas : on enregistre quand
+  // même l'événement, mais on signale le code à ajouter à l'enum plutôt que de
+  // l'abandonner en silence.
+  console.warn(`[ingest] errorType inconnu ignoré : ${valeur}`);
+  return undefined;
 };
 
 export const recordEngineEvent = internalMutation({
@@ -42,6 +45,7 @@ export const recordEngineEvent = internalMutation({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
+    const errorType = errorTypeValide(args.errorType);
 
     const traceId = await startTrace(
       ctx,
@@ -76,9 +80,7 @@ export const recordEngineEvent = internalMutation({
         // requestId conservé comme identifiant externe : c'est le pont vers le
         // journal du serveur, sans jamais stocker le contenu ni le numéro.
         externalTelemetryId: args.requestId,
-        ...(errorTypeValide(args.errorType)
-          ? { errorType: errorTypeValide(args.errorType) }
-          : {}),
+        ...(errorType ? { errorType } : {}),
       },
       now,
     );

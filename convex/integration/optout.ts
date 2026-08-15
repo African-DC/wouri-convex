@@ -8,10 +8,15 @@ import { recordAudit } from "../lib/audit";
 // Chantier 3 — opt-out. Quand un agriculteur répond STOP sur WhatsApp, le serveur
 // signale l'événement ici et on retire son consentement à la diffusion d'alertes.
 //
-// C'est un droit de l'agriculteur : il aboutit toujours, sans passer par une
-// permission d'agent (l'appelant est le serveur WhatsApp signé, pas un membre de
-// la Console). Le retrait est tracé avec un acteur système pour rester imputable.
-// resolveAudience filtre déjà sur ce même motif, donc le prochain envoi l'exclut.
+// C'est un droit de l'agriculteur : dès que le contact est reconnu, le retrait
+// aboutit sans passer par une permission d'agent (l'appelant est le serveur
+// WhatsApp signé, pas un membre de la Console), et il est tracé avec un acteur
+// système pour rester imputable. resolveAudience filtre déjà sur ce motif, donc
+// le prochain envoi l'exclut.
+//
+// Le seul cas où le retrait n'aboutit pas est un contact introuvable (empreinte
+// désynchronisée, mauvais organizationId) : on le remonte explicitement plutôt
+// que de le taire, pour que le STOP soit rejoué et non perdu.
 
 const ACTEUR_SYSTEME = "system:whatsapp";
 
@@ -27,7 +32,14 @@ export const applyOptOut = async (
   now: number,
 ): Promise<OptOutResult> => {
   const farmer = await model.getFarmerByExternalHash(ctx, organizationId, contactRef);
-  if (!farmer) return { applied: false, reason: "unknown_contact" };
+  if (!farmer) {
+    // Un STOP non honoré doit être visible côté serveur, pas seulement dans le
+    // corps de la réponse : c'est un retrait de consentement qui n'a pas eu lieu.
+    console.warn(
+      `[optout] contact introuvable, retrait non appliqué (org=${organizationId})`,
+    );
+    return { applied: false, reason: "unknown_contact" };
+  }
 
   const latest = await model.latestConsent(ctx, farmer._id, ALERT_CONSENT_PURPOSE);
   // Idempotent : un STOP déjà pris en compte ne réécrit rien.
