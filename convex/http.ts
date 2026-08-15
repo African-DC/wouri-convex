@@ -327,4 +327,91 @@ http.route({
   }),
 });
 
+// Chantier 4 (démo technologique) — proxy vers le VRAI moteur de langue.
+//
+// Le moteur expose `POST /api/tts/` (language=dioula) qui, en un appel, traduit
+// FR->dioula ET rend l'audio en vraie voix MMS-TTS-dioula. Mais : il exige une
+// clé `X-API-Key`, sa CORS est coupée en production, et il n'est pas joignable
+// par un navigateur. Ce proxy résout les trois : il détient la clé (jamais
+// exposée au site), ajoute la CORS, et Convex l'atteint une fois le moteur exposé
+// sur un sous-domaine public (à faire côté Issouf).
+//
+// Tant que ENGINE_URL / ENGINE_API_KEY ne sont pas configurées, le proxy répond
+// « moteur indisponible » et le site retombe proprement sur la couche validée.
+const LONGUEUR_MAX_MOTEUR = 2000;
+
+http.route({
+  path: "/public/engine/speak",
+  method: "OPTIONS",
+  handler: httpAction(async (_ctx, request) =>
+    new Response(null, { status: 204, headers: enTetesCors(request) }),
+  ),
+});
+
+http.route({
+  path: "/public/engine/speak",
+  method: "POST",
+  handler: httpAction(async (_ctx, request) => {
+    const cors = enTetesCors(request);
+    const enJson = (charge: unknown, code = 200) =>
+      new Response(JSON.stringify(charge), {
+        status: code,
+        headers: { "Content-Type": "application/json", ...cors },
+      });
+
+    const engineUrl = secretDeploiement("ENGINE_URL");
+    const engineKey = secretDeploiement("ENGINE_API_KEY");
+    // Non configuré = moteur pas encore exposé. On le dit franchement ; le site
+    // bascule sur la couche validée, il ne montre jamais une fausse voix.
+    if (!engineUrl || !engineKey) {
+      return enJson({ error: "engine_unavailable", reason: "not_configured" }, 503);
+    }
+
+    let corps: unknown;
+    try {
+      corps = await request.json();
+    } catch {
+      return enJson({ error: "invalid_json" }, 400);
+    }
+    const b = corps as Record<string, unknown>;
+    if (typeof b.text !== "string" || b.text.trim().length === 0) {
+      return enJson({ error: "text required" }, 400);
+    }
+    if (b.text.length > LONGUEUR_MAX_MOTEUR) {
+      return enJson({ error: "text too long" }, 400);
+    }
+
+    try {
+      const reponse = await fetch(`${engineUrl.replace(/\/$/, "")}/api/tts/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-API-Key": engineKey },
+        body: JSON.stringify({ text: b.text, language: "dioula" }),
+      });
+      if (!reponse.ok) {
+        return enJson({ error: "engine_error", status: reponse.status }, 502);
+      }
+      const data = (await reponse.json()) as {
+        text?: string;
+        audio_url?: string;
+        language?: string;
+      };
+      // L'audio est servi en chemin relatif (`/static/...`) : on le rend absolu
+      // pour que le navigateur le lise directement (une balise <audio> ne subit
+      // pas la CORS pour la lecture).
+      const audioUrl = data.audio_url
+        ? new URL(data.audio_url, engineUrl).toString()
+        : null;
+      return enJson({
+        source: "moteur",
+        texte: data.text ?? null,
+        audioUrl,
+        langue: data.language ?? "dioula",
+      });
+    } catch {
+      // Moteur injoignable : ni erreur avalée, ni fausse réussite.
+      return enJson({ error: "engine_unreachable" }, 502);
+    }
+  }),
+});
+
 export default http;
