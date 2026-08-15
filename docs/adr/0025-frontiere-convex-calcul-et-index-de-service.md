@@ -119,8 +119,8 @@ Quatre règles :
 - G09 devient réellement satisfaite : Convex versionne et audite, pgvector sert.
 - Le Fast Path conserve sa latence et sa qualité de recherche actuelles.
 - Aucune migration risquée d'un système en fonctionnement.
-- Une coopérative pourra disposer de ses propres phrases approuvées, avec le
-  cloisonnement déjà en place côté Convex.
+- La gouvernance du corpus est centralisée sur la plateforme (voir l'addendum
+  ci-dessous sur la propriété).
 
 ### Négatives et coûts assumés
 
@@ -145,7 +145,30 @@ Quatre règles :
 - [ADR-0024](0024-transition-convex-multitenant.md) : transition Convex multi-tenant
 - Roadmap Focus Dev : AI-03 (Fast Path), LNG-04 (corpus versionnés), G09
 
+## Addendum — propriété du corpus (2026-08-15)
+
+Décision de Marcel : **le corpus est une propriété d'ADC.** La langue validée
+(dioula, français) est un actif de la plateforme, produit par les validateurs
+linguistes d'ADC, qui peuvent rejouer des conversations pour corriger une
+traduction mal comprise. Il est **servi à toutes les organisations** clientes,
+mais **aucune ne le valide** : demander à une coopérative de valider reviendrait
+à lui faire faire le travail d'ADC, et à admettre que l'outil ne fonctionne pas
+seul.
+
+Le corpus est donc **partagé au niveau plateforme**, pas cloisonné par tenant.
+Conséquence appliquée dans le code : les mutations d'écriture du corpus
+(`promoteToApprovedPhrase`, `promoteToGlossary`, `promoteToCorpus`,
+`importCorpus`) exigent désormais l'organisation plateforme
+(`assertPlatformOrganization`). Une coopérative, même dotée du droit de
+validation linguistique, est refusée. Test : `convex/language/corpusOwnership.test.ts`.
+
+Cela ferme aussi le risque relevé en revue d'une fusion cross-tenant de deux
+demi-paires (français d'un tenant, dioula d'un autre) : un seul émetteur écrit le
+corpus, la fusion accidentelle ne peut plus se produire.
+
 ## Historique
 
 - 2026-08-13 : rédaction, à la suite de la question de migration du corpus posée
   après l'extraction du backend Convex dans son propre dépôt.
+- 2026-08-15 : addendum propriété du corpus (ADC seul valide), verrou plateforme
+  appliqué aux mutations d'écriture.

@@ -3,6 +3,7 @@ import { mutation } from "../_generated/server";
 import type { MutationCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
 import { authorizeMutation, CAPABILITIES } from "../authorization";
+import { assertPlatformOrganization } from "../aiops/shared";
 import { recordAudit } from "../lib/audit";
 import { resolveAuditActor } from "../lib/actor";
 import { WouriError, ERROR_TYPES } from "../lib/errors";
@@ -39,6 +40,8 @@ export const promoteToGlossary = mutation({
     const auth = await authorizeMutation(ctx, {
       permission: CAPABILITIES.linguisticValidate,
     });
+    // Corpus propriété d'ADC : seule la plateforme valide (ADR-0025).
+    await assertPlatformOrganization(ctx, auth);
     const feedback = await requireValidatedFeedback(
       ctx,
       auth.organizationId,
@@ -103,6 +106,8 @@ export const promoteToCorpus = mutation({
     const auth = await authorizeMutation(ctx, {
       permission: CAPABILITIES.linguisticValidate,
     });
+    // Corpus propriété d'ADC : seule la plateforme valide (ADR-0025).
+    await assertPlatformOrganization(ctx, auth);
     const feedback = await requireValidatedFeedback(
       ctx,
       auth.organizationId,

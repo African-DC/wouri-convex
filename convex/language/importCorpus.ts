@@ -3,6 +3,7 @@ import { internalMutation, mutation } from "../_generated/server";
 import type { MutationCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { authorizeMutation, CAPABILITIES } from "../authorization";
+import { assertPlatformOrganization } from "../aiops/shared";
 import { recordAudit } from "../lib/audit";
 import { resolveAuditActor } from "../lib/actor";
 import { createSource, createSourceVersion } from "../knowledge/model";
@@ -243,6 +244,8 @@ export const importCorpus = mutation({
     const auth = await authorizeMutation(ctx, {
       permission: CAPABILITIES.linguisticValidate,
     });
+    // Corpus propriété d'ADC : seule la plateforme importe et valide (ADR-0025).
+    await assertPlatformOrganization(ctx, auth);
     return runImport(ctx, auth.organizationId, auth, args);
   },
 });

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { authorize, authorizeMutation, CAPABILITIES } from "../authorization";
+import { assertPlatformOrganization } from "../aiops/shared";
 import { recordAudit } from "../lib/audit";
 import { resolveAuditActor } from "../lib/actor";
 import { WouriError, ERROR_TYPES } from "../lib/errors";
@@ -26,6 +27,10 @@ export const promoteToApprovedPhrase = mutation({
     const auth = await authorizeMutation(ctx, {
       permission: CAPABILITIES.linguisticValidate,
     });
+    // Le corpus est une propriété d'ADC : la langue validée est un actif de la
+    // plateforme, servi à toutes les organisations. Seule l'organisation
+    // plateforme valide, jamais une coopérative cliente. Voir ADR-0025.
+    await assertPlatformOrganization(ctx, auth);
     const feedback = await ctx.db.get(args.feedbackId);
     if (!feedback || feedback.organizationId !== auth.organizationId) {
       throw new WouriError(ERROR_TYPES.PERMISSION, "Feedback not accessible");
