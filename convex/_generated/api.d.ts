@@ -20,6 +20,8 @@ import type * as alerts_model from "../alerts/model.js";
 import type * as alerts_mutations from "../alerts/mutations.js";
 import type * as alerts_queries from "../alerts/queries.js";
 import type * as auth from "../auth.js";
+import type * as authBootstrap from "../authBootstrap.js";
+import type * as authPassword from "../authPassword.js";
 import type * as authorization from "../authorization.js";
 import type * as authz_authorize from "../authz/authorize.js";
 import type * as authz_capabilities from "../authz/capabilities.js";
@@ -110,6 +112,8 @@ declare const fullApi: ApiFromModules<{
   "alerts/mutations": typeof alerts_mutations;
   "alerts/queries": typeof alerts_queries;
   auth: typeof auth;
+  authBootstrap: typeof authBootstrap;
+  authPassword: typeof authPassword;
   authorization: typeof authorization;
   "authz/authorize": typeof authz_authorize;
   "authz/capabilities": typeof authz_capabilities;
