@@ -99,3 +99,63 @@ export const sourceVersionVisibleToOrg = async (
     source.visibility === "global" || source.organizationId === organizationId;
   return visible ? { source, version } : null;
 };
+
+export type KnowledgeSourceRosterRow = {
+  sourceId: Id<"knowledgeSources">;
+  authority: string;
+  license: string;
+  visibility: SourceVisibility;
+  status: "active" | "archived";
+  latestVersion: string | null;
+  acquiredAt: number | null;
+  documentCount: number;
+};
+
+const latestVersionForSource = async (
+  ctx: QueryCtx | MutationCtx,
+  sourceId: Id<"knowledgeSources">,
+) => {
+  const versions = await ctx.db
+    .query("knowledgeSourceVersions")
+    .withIndex("by_sourceId_and_version", (q) => q.eq("sourceId", sourceId))
+    .take(50);
+  if (versions.length === 0) return null;
+  return [...versions].sort((a, b) => b.acquiredAt - a.acquiredAt)[0];
+};
+
+const countDocumentsForVersion = async (
+  ctx: QueryCtx | MutationCtx,
+  sourceVersionId: Id<"knowledgeSourceVersions">,
+) => {
+  const documents = await ctx.db
+    .query("knowledgeDocuments")
+    .withIndex("by_sourceVersionId", (q) => q.eq("sourceVersionId", sourceVersionId))
+    .take(200);
+  return documents.length;
+};
+
+export const toKnowledgeSourceRosterRow = async (
+  ctx: QueryCtx | MutationCtx,
+  source: NonNullable<Awaited<ReturnType<typeof getSource>>>,
+): Promise<KnowledgeSourceRosterRow> => {
+  const version = await latestVersionForSource(ctx, source._id);
+  const documentCount = version ? await countDocumentsForVersion(ctx, version._id) : 0;
+  return {
+    sourceId: source._id,
+    authority: source.authority,
+    license: source.license,
+    visibility: source.visibility,
+    status: source.status,
+    latestVersion: version?.version ?? null,
+    acquiredAt: version?.acquiredAt ?? null,
+    documentCount,
+  };
+};
+
+export const listSourceRosterVisibleToOrg = async (
+  ctx: QueryCtx | MutationCtx,
+  organizationId: string,
+): Promise<KnowledgeSourceRosterRow[]> => {
+  const sources = await listSourcesVisibleToOrg(ctx, organizationId);
+  return Promise.all(sources.map((source) => toKnowledgeSourceRosterRow(ctx, source)));
+};

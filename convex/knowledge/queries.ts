@@ -7,7 +7,7 @@ export const listKnowledgeSources = query({
   args: {},
   handler: async (ctx) => {
     const auth = await authorize(ctx, { permission: CAPABILITIES.knowledgeRead });
-    return model.listSourcesVisibleToOrg(ctx, auth.organizationId);
+    return model.listSourceRosterVisibleToOrg(ctx, auth.organizationId);
   },
 });
 
