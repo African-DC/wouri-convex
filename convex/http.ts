@@ -442,4 +442,17 @@ http.route({
   }),
 });
 
+
+// Premier compte ADC : la page de connexion lit cet etat avant d afficher
+// le formulaire d inscription. Aucune donnee personnelle n est renvoyee.
+http.route({
+  path: "/public/auth/bootstrap",
+  method: "GET",
+  handler: httpAction(async (ctx) => {
+    const etat = await ctx.runQuery(internal.authBootstrap.needsBootstrap, {});
+    return json(etat);
+  }),
+});
+
 export default http;
+

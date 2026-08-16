@@ -23,17 +23,11 @@ lancer avant toute revue : une matrice périmée est pire qu'aucune matrice.
    fonction que personne ne peut atteindre est soit un trou du Control Plane,
    soit une surface à retirer.
 
-## Ouvrir un accès de démonstration
+## Ouvrir un acces
 
-La création de compte est fermée par défaut. Pour ajouter un compte :
+S'il n'existe encore aucun utilisateur, la page de connexion affiche le formulaire du premier compte ADC. Ce compte est rattache automatiquement a African Digit Consulting avec le role adcAdmin. L'inscription se referme ensuite toute seule.
 
-```bash
-pnpm exec convex env set --prod AUTH_SELF_SIGNUP_ENABLED true
-# créer le compte, puis le rattacher via internal.testing.linkDemoAccount
-pnpm exec convex env set --prod AUTH_SELF_SIGNUP_ENABLED false
-```
-
-Refermer immédiatement. Un environnement de démonstration reste public.
+Pour un compte de demonstration supplementaire, ouvrir temporairement AUTH_SELF_SIGNUP_ENABLED, creer le compte, puis le rattacher via internal.testing.linkDemoAccount et refermer le flag.
 
 ## Couper une fonctionnalité
 

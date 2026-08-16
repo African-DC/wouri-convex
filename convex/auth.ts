@@ -5,6 +5,7 @@ import {
 } from "@convex-dev/better-auth";
 import { convex } from "@convex-dev/better-auth/plugins";
 import { betterAuth, type BetterAuthOptions } from "better-auth/minimal";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { organization } from "better-auth/plugins";
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
@@ -52,8 +53,22 @@ export const authComponent = createClient<DataModel, typeof authSchema>(
     authFunctions,
     local: { schema: authSchema },
     triggers: {
+      user: {
+        onCreate: async (ctx, user) => {
+          await ctx.runMutation(internal.authBootstrap.claimFirstAdcAdmin, {
+            userId: user._id,
+          });
+        },
+      },
       organization: {
         onCreate: async (ctx, organization) => {
+          const existing = await ctx.db
+            .query("organizationProfiles")
+            .withIndex("by_organizationId", (q) =>
+              q.eq("organizationId", organization._id),
+            )
+            .unique();
+          if (existing) return;
           await ctx.db.insert("organizationProfiles", {
             organizationId: organization._id,
             legalName: organization.name,
@@ -74,9 +89,29 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
     database: authComponent.adapter(ctx),
     emailAndPassword: {
       enabled: emailPasswordEnabled(),
-      disableSignUp: !selfSignUpEnabled(),
+      // L'inscription n'est pas pilotee par un flag statique : Better Auth
+      // evalue disableSignUp au demarrage. Le vrai garde-fou est le hook
+      // ci-dessous : premier utilisateur seulement, sauf ouverture explicite.
+      disableSignUp: false,
       minPasswordLength: 12,
       requireEmailVerification: false,
+    },
+    hooks: {
+      before: createAuthMiddleware(async (hookCtx) => {
+        const path = hookCtx.path ?? "";
+        if (!path.includes("/sign-up/email")) return;
+        if (selfSignUpEnabled()) return;
+        const adapter = hookCtx.context.adapter;
+        const users = await adapter.findMany({
+          model: "user",
+          limit: 1,
+        });
+        if (Array.isArray(users) && users.length > 0) {
+          throw new APIError("FORBIDDEN", {
+            message: "Email and password sign up is not enabled",
+          });
+        }
+      }),
     },
     plugins: [
       organization({
