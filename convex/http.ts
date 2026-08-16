@@ -447,10 +447,21 @@ http.route({
 // le formulaire d inscription. Aucune donnee personnelle n est renvoyee.
 http.route({
   path: "/public/auth/bootstrap",
+  method: "OPTIONS",
+  handler: httpAction(async (_ctx, request) =>
+    new Response(null, { status: 204, headers: enTetesCors(request) }),
+  ),
+});
+
+http.route({
+  path: "/public/auth/bootstrap",
   method: "GET",
-  handler: httpAction(async (ctx) => {
+  handler: httpAction(async (ctx, request) => {
     const etat = await ctx.runQuery(internal.authBootstrap.needsBootstrap, {});
-    return json(etat);
+    return new Response(JSON.stringify(etat), {
+      status: 200,
+      headers: { "Content-Type": "application/json", ...enTetesCors(request) },
+    });
   }),
 });
 
