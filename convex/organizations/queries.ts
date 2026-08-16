@@ -30,6 +30,7 @@ export const listOrganizations = query({
           )
           .take(50);
         const maxFarmers = entitlements.find((e) => e.key === "maxFarmers");
+        const whatsapp = entitlements.find((e) => e.key === "whatsappEnabled");
         return {
           organizationId: profile.organizationId,
           kind: profile.kind ?? null,
@@ -38,7 +39,7 @@ export const listOrganizations = query({
           agriculteurs: farmers.length,
           agriculteursPlafonnes: farmers.length > 500,
           maxFarmers: maxFarmers?.limit ?? null,
-          droits: entitlements.filter((e) => e.enabled).length,
+          whatsappEnabled: Boolean(whatsapp?.enabled),
         };
       }),
     );
