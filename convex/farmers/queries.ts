@@ -12,7 +12,7 @@ export const listFarmers = query({
   args: { paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     const auth = await authorize(ctx, { permission: CAPABILITIES.farmersRead });
-    return model.listFarmersForOrg(ctx, auth.organizationId, args.paginationOpts);
+    return model.listFarmerRosterForOrg(ctx, auth.organizationId, args.paginationOpts);
   },
 });
 

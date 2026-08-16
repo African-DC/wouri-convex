@@ -1,6 +1,7 @@
 import type { PaginationOptions, PaginationResult } from "convex/server";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
+import { ALERT_CONSENT_PURPOSE } from "../alerts/audience";
 
 // DAT-04 / §15 — org-scoped data access for the FARMERS domain. Every helper
 // takes organizationId (or a farmer already proven to belong to the org)
@@ -72,6 +73,64 @@ export const listFarmersForOrg = async (
     )
     .order("desc")
     .paginate(paginationOpts);
+
+export type FarmerConsentSummary = {
+  state: "granted" | "withdrawn" | "never";
+  recordedAt: number | null;
+};
+
+/** Ligne de roster pour la console : profil operationnel, jamais l identifiant technique. */
+export type FarmerRosterRow = {
+  farmerId: Id<"farmers">;
+  status: Doc<"farmers">["status"];
+  createdAt: number;
+  preferredLanguage: string | null;
+  countryCode: string | null;
+  zoneIds: string[];
+  cropCodes: string[];
+  consent: FarmerConsentSummary;
+};
+
+const summarizeConsent = (
+  consent: Doc<"farmerConsents"> | null,
+): FarmerConsentSummary => {
+  if (!consent) return { state: "never", recordedAt: null };
+  return { state: consent.state, recordedAt: consent.recordedAt };
+};
+
+export const toFarmerRosterRow = async (
+  ctx: Ctx,
+  farmer: Doc<"farmers">,
+): Promise<FarmerRosterRow> => {
+  const [profile, zones, crops, consent] = await Promise.all([
+    getFarmerProfileForFarmer(ctx, farmer._id),
+    listZoneLinksForFarmer(ctx, farmer._id),
+    listCropLinksForFarmer(ctx, farmer._id),
+    latestConsent(ctx, farmer._id, ALERT_CONSENT_PURPOSE),
+  ]);
+  return {
+    farmerId: farmer._id,
+    status: farmer.status,
+    createdAt: farmer.createdAt,
+    preferredLanguage: profile?.preferredLanguage ?? null,
+    countryCode: profile?.countryCode ?? null,
+    zoneIds: zones.map((link) => link.zoneId),
+    cropCodes: crops.map((link) => link.cropCode),
+    consent: summarizeConsent(consent),
+  };
+};
+
+export const listFarmerRosterForOrg = async (
+  ctx: Ctx,
+  organizationId: string,
+  paginationOpts: PaginationOptions,
+): Promise<PaginationResult<FarmerRosterRow>> => {
+  const page = await listFarmersForOrg(ctx, organizationId, paginationOpts);
+  return {
+    ...page,
+    page: await Promise.all(page.page.map((farmer) => toFarmerRosterRow(ctx, farmer))),
+  };
+};
 
 export const createFarmerForOrg = async (
   ctx: MutationCtx,
